@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Lembar Revisi Sidang</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <style>
         body {
             font-family: 'Times New Roman', Times, serif;
@@ -10,72 +11,115 @@
             line-height: 1.3;
             color: #000;
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 3px double black;
             padding-bottom: 10px;
         }
-        .header h3 { margin: 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-        .header h2 { margin: 5px 0 0 0; font-size: 16pt; font-weight: bold; text-transform: uppercase; }
-        .header p { margin: 0; font-size: 11pt; font-style: italic; }
+
+        .header h3 {
+            margin: 0;
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .header h2 {
+            margin: 5px 0 0 0;
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 11pt;
+            font-style: italic;
+        }
 
         .meta-table {
             width: 100%;
             margin-bottom: 20px;
             border-collapse: collapse;
         }
+
         .meta-table td {
             vertical-align: top;
             padding: 4px 0;
         }
-        .label { width: 160px; font-weight: bold; }
-        .sep { width: 10px; text-align: center; }
+
+        .label {
+            width: 160px;
+            font-weight: bold;
+        }
+
+        .sep {
+            width: 10px;
+            text-align: center;
+        }
 
         .content-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
-        .content-table th, .content-table td {
+
+        .content-table th,
+        .content-table td {
             border: 1px solid black;
             padding: 8px;
             vertical-align: top;
             text-align: left;
         }
+
         .content-table th {
             background-color: #f0f0f0;
             text-align: center;
             font-weight: bold;
         }
-        .col-no { width: 5%; text-align: center; }
-        .col-dosen { width: 25%; }
-        .col-revisi { width: 70%; }
+
+        .col-no {
+            width: 5%;
+            text-align: center;
+        }
+
+        .col-dosen {
+            width: 30%;
+        }
+
+        .col-revisi {
+            width: 65%;
+        }
 
         .footer {
             margin-top: 60px;
             width: 100%;
         }
+
         .ttd-container {
             width: 100%;
             text-align: right;
         }
+
         .ttd-box {
             display: inline-block;
             text-align: center;
             width: 250px;
         }
+
         .ttd-line {
             margin-top: 80px;
             border-top: 1px solid black;
         }
-        
-        /* Utility */
+
         .page-break {
             page-break-after: always;
         }
     </style>
 </head>
+
 <body>
 
     <div class="header">
@@ -123,14 +167,15 @@
         <tbody>
             @forelse($sidang->lembarPenilaians as $index => $penilaian)
                 <tr>
+                    {{-- KOLOM 1: NO --}}
                     <td style="text-align: center;">{{ $index + 1 }}</td>
+                    
+                    {{-- KOLOM 2: NAMA DOSEN (Ini yang tadi hilang di kode Anda) --}}
                     <td>
                         <strong>{{ $penilaian->dosen->nama_lengkap ?? 'Dosen Penguji' }}</strong>
-                        <br>
-                        <span style="font-size: 10pt; color: #555;">
-                            ({{ ucwords(str_replace('_', ' ', strtolower($penilaian->penilaian_type))) }})
-                        </span>
                     </td>
+
+                    {{-- KOLOM 3: REVISI --}}
                     <td>
                         @if($penilaian->komentar_revisi)
                             {!! nl2br(e($penilaian->komentar_revisi)) !!}
@@ -159,4 +204,5 @@
     </div>
 
 </body>
-</html> 
+
+</html>

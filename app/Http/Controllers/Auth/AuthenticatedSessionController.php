@@ -28,8 +28,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // --- MULAI LOGIKA REDIRECT BERBASIS PERAN ---
-
         $user = Auth::user();
 
         if ($user->mahasiswa_id) {
@@ -45,9 +43,6 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended('/admin/dashboard');
         }
 
-        // --- SELESAI LOGIKA REDIRECT ---
-
-        // Fallback jika user login tapi tidak punya peran (seharusnya tidak terjadi)
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

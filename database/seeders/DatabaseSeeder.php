@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
             EventSidangSeeder::class,
         ]);
 
-        // Ambil ID periode aktif untuk di-assign ke TA baru
+        // 2. Ambil Periode Aktif (2025/2026 Ganjil)
         $activePeriode = Periode::where('is_active', true)->first();
 
         // Fallback jika seeder periode belum diset
@@ -86,7 +86,7 @@ class DatabaseSeeder extends Seeder
             'email' => '160422100@student.ubaya.ac.id', // Sesuaikan dengan NRP
             'password' => Hash::make('password123'),
         ]);
-        
+
         // Buat Staff Duladi
         $staff_duladi = Staff::factory()->create([
             'npk' => '87654321',
@@ -119,13 +119,14 @@ class DatabaseSeeder extends Seeder
         // Buat TA spesifik untuk James (Hubungkan ke Periode Aktif)
         TugasAkhir::factory()->create([
             'mahasiswa_id' => $mhs_james->id,
-            'periode_id' => $activePeriode->id, // <-- PERUBAHAN DI SINI
+            'periode_id' => $activePeriode->id, // <--- PENTING!
             'judul' => 'Pembuatan Sistem Manajemen Berkas Tugas Akhir Dengan Digital Signature',
             'dosen_pembimbing_1_id' => $dosen_joko->id,
             'dosen_pembimbing_2_id' => $dosen_ahmad->id,
-            'status' => 'Bimbingan', // <-- Sesuai factory
+            'status' => 'Bimbingan',
+            'dosbing_1_approved_at' => now(),
+            'dosbing_2_approved_at' => now(),
         ]);
-
         // Buat 5 user mhs DENGAN TA (Hubungkan ke Periode Aktif)
         User::factory(5)->mahasiswa()->withTugasAkhir($activePeriode->id)->create(); // <-- PERUBAHAN DI SINI
 

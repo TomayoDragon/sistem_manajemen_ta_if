@@ -1,48 +1,42 @@
 <?php
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Periode;
 use App\Models\EventSidang;
+use Carbon\Carbon;
 
 class EventSidangSeeder extends Seeder
 {
     public function run(): void
     {
-        // 2024-2025
-        $p = Periode::where('nama', 'Semester Ganjil 2024/2025')->first();
-        if ($p) {
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Ganjil 24/25 - Gel. 1', 'tipe' => 'SIDANG_TA']);
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Ganjil 24/25 - Gel. 2', 'tipe' => 'SIDANG_TA']);
-        }
-        $p = Periode::where('nama', 'Semester Genap 2024/2025')->first();
-        if ($p) {
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Genap 24/25 - Gel. 1', 'tipe' => 'SIDANG_TA']);
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Genap 24/25 - Gel. 2', 'tipe' => 'SIDANG_TA']);
-        }
+        // Ambil periode dari 2024 ke atas
+        $periodes = Periode::where('tanggal_mulai', '>=', '2024-01-01')->get();
 
-        // 2025-2026 (Periode Aktif)
-        $p = Periode::where('nama', 'Semester Ganjil 2025/2026')->first();
-        if ($p) {
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Ganjil 25/26 - Gel. 1 (Nov)', 'tipe' => 'SIDANG_TA']);
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Ganjil 25/26 - Gel. 2 (Jan)', 'tipe' => 'SIDANG_TA']);
-        }
-        $p = Periode::where('nama', 'Semester Genap 2025/2026')->first();
-        if ($p) {
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Genap 25/26 - Gel. 1', 'tipe' => 'SIDANG_TA']);
-            EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Genap 25/26 - Gel. 2', 'tipe' => 'SIDANG_TA']);
-        }
+        foreach ($periodes as $p) {
+            // Tentukan tahun dari nama periode untuk label
+            $tahun = substr($p->nama, -9); // Ambil "202X/202X"
 
-        // 2026-2027 Ganjil
-        // Kita buat periodenya dulu karena seeder 2022-2026 belum mencakup ini
-        $p = Periode::create([
-            'nama' => 'Semester Ganjil 2026/2027',
-            'tahun_akademik' => '2026/2027',
-            'semester' => 'GANJIL',
-            'is_active' => false,
-        ]);
-        EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Ganjil 26/27 - Gel. 1', 'tipe' => 'SIDANG_TA']);
-        EventSidang::create(['periode_id' => $p->id, 'nama_event' => 'Sidang Ganjil 26/27 - Gel. 2', 'tipe' => 'SIDANG_TA']);
+            // Gelombang 1 (Bulan ke-3 periode)
+            EventSidang::create([
+                'periode_id' => $p->id,
+                'nama_event' => "Sidang TA Gel. 1 ({$p->nama})",
+                'tipe' => 'SIDANG_TA',
+                'is_published' => true,
+                'tanggal_mulai' => Carbon::parse($p->tanggal_mulai)->addMonths(2),
+                'tanggal_selesai' => Carbon::parse($p->tanggal_mulai)->addMonths(2)->addDays(14),
+            ]);
+
+            // Gelombang 2 (Bulan ke-5 periode)
+            EventSidang::create([
+                'periode_id' => $p->id,
+                'nama_event' => "Sidang TA Gel. 2 ({$p->nama})",
+                'tipe' => 'SIDANG_TA',
+                'is_published' => true,
+                'tanggal_mulai' => Carbon::parse($p->tanggal_mulai)->addMonths(4),
+                'tanggal_selesai' => Carbon::parse($p->tanggal_mulai)->addMonths(4)->addDays(14),
+            ]);
+        }
     }
 }

@@ -6,7 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 class Periode extends Model
 {
     use HasFactory;
-    protected $fillable = ['nama', 'tahun_akademik', 'semester', 'is_active'];
+    protected $fillable = [
+        'nama',
+        'tanggal_mulai',   
+        'tanggal_selesai', 
+        'tahun_akademik',
+        'semester',
+        'is_active'
+    ];
 
     public function eventsSidang()
     {

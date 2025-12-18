@@ -242,7 +242,6 @@
 
         <h2 class="content-title" style="font-size: 1.5rem; margin-top: 30px;">Sidang</h2>
         <div class="content-box">
-
             @if ($sidang)
 
                 @if ($sidang->status == 'TERJADWAL')
@@ -294,18 +293,18 @@
                         @endif
 
                         <div class="action-buttons">
-                            {{-- Tombol Download Revisi --}}
-                            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi']) }}"
+                            {{-- TOMBOL LIHAT REVISI --}}
+                            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi', 'mode' => 'view']) }}"
                                 target="_blank" class="btn-custom btn-orange">
-                                <i class="fa-solid fa-clipboard-list"></i>
-                                Download Revisi
+                                <i class="fa-solid fa-eye"></i>
+                                Lihat Revisi
                             </a>
 
-                            {{-- Tombol Download Berita Acara --}}
-                            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara']) }}"
+                            {{-- TOMBOL LIHAT BERITA ACARA --}}
+                            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara', 'mode' => 'view']) }}"
                                 target="_blank" class="btn-custom btn-blue">
                                 <i class="fa-solid fa-file-pdf"></i>
-                                Download Berita Acara
+                                Lihat Berita Acara
                             </a>
                         </div>
 

@@ -25,11 +25,10 @@ class DokumenController extends Controller
 
     /**
      * [EXISTING] Download Dokumen Pengajuan (Buku Skripsi, KHS, Transkrip)
-     * Logic ini dari kode yang kamu kirimkan.
      */
     public function download(Request $request, DokumenPengajuan $dokumen)
     {
-        // 1. --- LOGIKA KEAMANAN (SAMA SEPERTI SEBELUMNYA) ---
+        // 1. --- LOGIKA KEAMANAN ---
         $user = Auth::user();
         $taOwnerId = $dokumen->pengajuanSidang->tugasAkhir->mahasiswa_id;
 
@@ -51,52 +50,53 @@ class DokumenController extends Controller
             return redirect()->back()->with('error', 'File tidak ditemukan di server.');
         }
 
-        // 3. --- LOGIKA BARU: VIEW vs DOWNLOAD ---
-
-        // Jika ada parameter ?mode=view di URL, tampilkan di browser (inline)
+        // 3. --- VIEW vs DOWNLOAD ---
         if ($request->query('mode') === 'view') {
-            // response()->file() mengirim header 'Content-Disposition: inline'
-            // Ini memaksa browser membuka file (jika PDF/Gambar) alih-alih download
-            return response()->file(storage_path('app/private/' . $path));
+            // Asumsi file ada di storage/app/private atau root storage default
+            // Kita gunakan Storage::path() untuk mendapatkan absolute path yang aman
+            return response()->file(Storage::path($path));
         }
 
-        // Default: Download paksa (Content-Disposition: attachment)
         return Storage::download($path, $dokumen->nama_file_asli);
     }
 
     /**
-     * [BARU] Download Hasil Sidang (Lembar Revisi & Berita Acara)
-     * Menggunakan DokumenSystemHelper untuk auto-generate & sign.
+     * [UPDATED] Download Hasil Sidang (Lembar Revisi & Berita Acara)
+     * Sekarang mendukung mode preview di tab baru.
      */
-    public function downloadHasilSidang($sidangId, $jenis)
+    /**
+     * Download atau Preview Hasil Sidang
+     */
+    public function downloadHasilSidang(Request $request, $sidangId, $jenis)
     {
+        // 1. Ambil Data Sidang
         $sidang = Sidang::with([
             'tugasAkhir.mahasiswa',
             'beritaAcara',
             'eventSidang',
             'lembarPenilaians.dosen',
-            'dosenPengujiKetua',        // Load data penguji
-            'dosenPengujiSekretaris',   // Load data penguji
-            'tugasAkhir.dosenPembimbing1', // Load dosbing
-            'tugasAkhir.dosenPembimbing2'  // Load dosbing
+            'dosenPengujiKetua',
+            'dosenPengujiSekretaris',
+            'tugasAkhir.dosenPembimbing1',
+            'tugasAkhir.dosenPembimbing2'
         ])->findOrFail($sidangId);
 
         $user = Auth::user();
 
-        // --- AUTHORIZATION CHECK ---
+        // 2. Cek Hak Akses (Authorization)
         $isAuthorized = false;
 
-        // 1. Staff: Boleh semua
+        // a. Staff
         if (method_exists($user, 'hasRole') ? $user->hasRole('staff') : $user->staff_id) {
             $isAuthorized = true;
         }
-        // 2. Mahasiswa: Hanya miliknya sendiri
+        // b. Mahasiswa (Pemilik TA)
         elseif ($user->mahasiswa_id) {
             if ($sidang->tugasAkhir->mahasiswa_id === $user->mahasiswa_id) {
                 $isAuthorized = true;
             }
         }
-        // 3. Dosen: Hanya jika dia terlibat (Pembimbing / Penguji)
+        // c. Dosen (Penguji/Pembimbing)
         elseif ($user->dosen_id) {
             $isPenguji = $sidang->dosen_penguji_ketua_id == $user->dosen_id ||
                 $sidang->dosen_penguji_sekretaris_id == $user->dosen_id;
@@ -109,16 +109,14 @@ class DokumenController extends Controller
         }
 
         if (!$isAuthorized) {
-            abort(403, 'Anda tidak memiliki akses ke hasil sidang ini.');
+            abort(403, 'Anda tidak memiliki akses ke dokumen ini.');
         }
 
-        // --- PROSES DOWNLOAD MENGGUNAKAN HELPER ---
+        // 3. Generate atau Ambil Dokumen via Helper
         $dokumen = null;
-
         if ($jenis === 'revisi') {
             $dokumen = $this->docHelper->getOrGenerateRevisi($sidang);
         } elseif ($jenis === 'berita-acara') {
-            // Cek apakah sidang sudah dinilai dan BA terbit
             if (!$sidang->beritaAcara) {
                 return back()->with('error', 'Berita Acara belum diterbitkan.');
             }
@@ -127,6 +125,26 @@ class DokumenController extends Controller
             abort(404);
         }
 
+        // 4. Pastikan File Fisik Ada
+        if (!Storage::exists($dokumen->path_file)) {
+            abort(404, 'File fisik dokumen tidak ditemukan di server.');
+        }
+
+        // --- INI BAGIAN KUNCI AGAR TIDAK LANGSUNG DOWNLOAD ---
+
+        // Jika di URL ada ?mode=view
+        if ($request->query('mode') === 'view') {
+            // Ambil path lengkap (Absolute Path)
+            $absolutePath = Storage::path($dokumen->path_file);
+
+            // Return sebagai file inline (Browser akan membukanya)
+            return response()->file($absolutePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $dokumen->nama_file_asli . '"'
+            ]);
+        }
+
+        // Default: Download Paksa (Attachment)
         return Storage::download($dokumen->path_file, $dokumen->nama_file_asli);
     }
 }

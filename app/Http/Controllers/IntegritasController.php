@@ -10,75 +10,44 @@ use Illuminate\Support\Facades\Auth;
 
 class IntegritasController extends Controller
 {
-    /**
-     * Fungsi Helper Private untuk Mengecek Hak Akses.
-     * Jika user tidak berhak, kode ini akan langsung membatalkan proses (Abort 403).
-     */
     private function authorizeAccess(DokumenPengajuan $dokumen)
     {
         $user = Auth::user();
-        
-        // Ambil data Tugas Akhir terkait dokumen ini
         $tugasAkhir = $dokumen->pengajuanSidang->tugasAkhir;
 
-        // 1. Cek Role MAHASISWA
         if ($user->hasRole('mahasiswa')) {
-            // Mahasiswa hanya boleh akses jika ini dokumen miliknya sendiri
             if ($tugasAkhir->mahasiswa_id !== $user->mahasiswa_id) {
-                abort(403, 'AKSES DITOLAK. Anda tidak berhak mengecek integritas dokumen mahasiswa lain.');
+                abort(403, 'AKSES DITOLAK.');
             }
-        }
-        
-        // 2. Cek Role DOSEN
-        elseif ($user->hasRole('dosen')) {
+        } elseif ($user->hasRole('dosen')) {
             $dosenId = $user->dosen_id;
-
-            // Cek apakah dia Pembimbing 1 atau 2
             $isPembimbing = ($tugasAkhir->dosen_pembimbing_1_id == $dosenId || $tugasAkhir->dosen_pembimbing_2_id == $dosenId);
-
-            // Cek apakah dia Penguji (Ketua/Sekretaris) di Sidang manapun untuk TA ini
+            
             $isPengujiSidang = $tugasAkhir->sidangs()->where(function($q) use ($dosenId) {
-                $q->where('dosen_penguji_ketua_id', $dosenId)
-                  ->orWhere('dosen_penguji_sekretaris_id', $dosenId);
+                $q->where('dosen_penguji_ketua_id', $dosenId)->orWhere('dosen_penguji_sekretaris_id', $dosenId);
             })->exists();
-
-            // Cek apakah dia Penguji di LSTA manapun untuk TA ini
             $isPengujiLsta = $tugasAkhir->lstas()->where('dosen_penguji_id', $dosenId)->exists();
 
             if (!$isPembimbing && !$isPengujiSidang && !$isPengujiLsta) {
-                abort(403, 'AKSES DITOLAK. Anda bukan Pembimbing atau Penguji mahasiswa ini.');
+                abort(403, 'AKSES DITOLAK. Anda bukan dosen terkait.');
             }
-        }
-        
-        // 3. Role STAFF
-        elseif ($user->hasRole('staff')) {
-            // Staff PAJ diperbolehkan mengakses semua dokumen untuk keperluan validasi
+        } elseif ($user->hasRole('staff')) {
             return true;
-        }
-
-        // Jika role tidak dikenali (misal Admin), kita tolak atau izinkan sesuai kebutuhan.
-        // Untuk keamanan maksimal, defaultnya kita tolak jika bukan Staff/DosenTerkait/Pemilik.
-        else {
-             // Jika Anda ingin Admin bisa akses, ubah logika ini. 
-             // Saat ini Admin akan kena block kecuali ditambahkan kondisinya.
-             if (!$user->hasRole('admin')) {
-                 abort(403, 'AKSES DITOLAK.');
-             }
+        } else {
+             if (!$user->hasRole('admin')) abort(403);
         }
     }
 
-    /**
-     * Menampilkan halaman verifikasi (Per-File).
-     */
     public function show(DokumenPengajuan $dokumen)
     {
-        // --- STEP 1: CEK OTORISASI ---
         $this->authorizeAccess($dokumen);
-        // -----------------------------
-
         $dokumen->load('pengajuanSidang.tugasAkhir.mahasiswa');
-        $layout = $this->getLayoutForUser(Auth::user());
         
+        $layout = 'app-layout';
+        if (Auth::user()->hasRole('mahasiswa')) $layout = 'mahasiswa-layout';
+        if (Auth::user()->hasRole('dosen')) $layout = 'dosen-layout';
+        if (Auth::user()->hasRole('staff')) $layout = 'staff-layout';
+
         return view('integritas-check', [
             'dokumen' => $dokumen,
             'layout' => $layout
@@ -86,40 +55,39 @@ class IntegritasController extends Controller
     }
 
     /**
-     * Memproses 1 file yang diupload untuk dicek.
+     * Memproses verifikasi menggunakan DIGITAL SIGNATURE (ASLI).
      */
     public function verify(Request $request, DokumenPengajuan $dokumen, SignatureService $signatureService)
     {
-        // --- STEP 1: CEK OTORISASI ---
         $this->authorizeAccess($dokumen);
-        // -----------------------------
 
         $request->validate([
             'file_cek' => 'required|file|max:20480',
         ]);
 
-        $originalHash = $dokumen->hash_combined;
-        $fileContent = $request->file('file_cek')->get();
-        
-        // Hitung hash baru
-        $hashData = $signatureService->performCustomHash($fileContent);
-        $newHash = $hashData['combined_hex'];
+        // 1. Ambil Data Kunci & Signature dari Database
+        $storedSignature = $dokumen->signature_data; // Signature Biner Asli
+        $mahasiswa = $dokumen->pengajuanSidang->tugasAkhir->mahasiswa;
+        $publicKey = $mahasiswa->public_key; // Public Key Mahasiswa
 
-        // Bandingkan
-        $isMatch = ($originalHash === $newHash);
+        // 2. Proses File Baru (Hashing Saja)
+        $fileContent = $request->file('file_cek')->get();
+        $hashData = $signatureService->performCustomHash($fileContent);
+        $newHashRaw = $hashData['combined_raw_for_signing']; // Hash biner dari file baru
         
+        // 3. LAKUKAN VERIFIKASI SIGNATURE (MENGGUNAKAN PUBLIC KEY)
+        // Ini memastikan Authenticity (Asli dari pemilik) & Non-Repudiation
+        $isValid = $signatureService->verifySignature(
+            $storedSignature, 
+            $newHashRaw, 
+            $publicKey
+        );
+        
+        // 4. Kembalikan Hasil
         return redirect()->route('integritas.show', $dokumen->id)
             ->with([
-                'checkResult' => $isMatch,
-                'newHash' => $newHash,
+                'checkResult' => $isValid, // True/False
+                'newHash' => $hashData['combined_hex'], // Untuk ditampilkan jika gagal
             ]);
-    }
-    
-    private function getLayoutForUser($user)
-    {
-        if ($user->hasRole('mahasiswa')) return 'mahasiswa-layout';
-        if ($user->hasRole('dosen')) return 'dosen-layout';
-        if ($user->hasRole('staff')) return 'staff-layout';
-        return 'app-layout'; 
     }
 }

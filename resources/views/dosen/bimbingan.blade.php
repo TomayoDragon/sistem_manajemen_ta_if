@@ -70,7 +70,6 @@
                         <th>Judul TA</th>
                         <th>Status Persetujuan</th>
                         <th>Aksi Anda</th>
-                        {{-- KOLOM BARU --}}
                         <th style="text-align: center;">Dokumen Sidang</th>
                     </tr>
                 </thead>
@@ -127,26 +126,27 @@
                                 @endif
                             </td>
                             
-                            {{-- KOLOM BARU: DOKUMEN SIDANG --}}
+                            {{-- KOLOM DOKUMEN SIDANG (DIPERBAIKI) --}}
                             <td style="text-align: center; width: 18%;">
                                 @php
                                     // Ambil sidang TERAKHIR mahasiswa ini
-                                    // Pastikan 'sidangs' sudah di-load di BimbinganController
                                     $sidangTerakhir = $ta->sidangs->sortByDesc('created_at')->first();
                                 @endphp
 
                                 @if ($sidangTerakhir && in_array($sidangTerakhir->status, ['LULUS', 'LULUS_REVISI', 'TIDAK_LULUS']))
                                     
-                                    {{-- Tombol Download Revisi --}}
-                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidangTerakhir->id, 'jenis' => 'revisi']) }}" 
-                                       target="_blank" class="btn-download btn-revisi" title="Download Lembar Revisi">
-                                        <i class="fa-solid fa-clipboard-list"></i> Revisi
+                                    {{-- Tombol Lihat Revisi --}}
+                                    {{-- PERUBAHAN: Menambahkan 'mode' => 'view' agar tidak langsung download --}}
+                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidangTerakhir->id, 'jenis' => 'revisi', 'mode' => 'view']) }}" 
+                                       target="_blank" class="btn-download btn-revisi" title="Lihat Lembar Revisi">
+                                        <i class="fa-solid fa-eye"></i> Revisi
                                     </a>
 
-                                    {{-- Tombol Download BA --}}
-                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidangTerakhir->id, 'jenis' => 'berita-acara']) }}" 
-                                       target="_blank" class="btn-download btn-ba" title="Download Berita Acara">
-                                        <i class="fa-solid fa-file-signature"></i> BA
+                                    {{-- Tombol Lihat BA --}}
+                                    {{-- PERUBAHAN: Menambahkan 'mode' => 'view' agar tidak langsung download --}}
+                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidangTerakhir->id, 'jenis' => 'berita-acara', 'mode' => 'view']) }}" 
+                                       target="_blank" class="btn-download btn-ba" title="Lihat Berita Acara">
+                                        <i class="fa-solid fa-file-pdf"></i> BA
                                     </a>
 
                                 @elseif($sidangTerakhir && $sidangTerakhir->status == 'TERJADWAL')

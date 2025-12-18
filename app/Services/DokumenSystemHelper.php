@@ -17,27 +17,19 @@ class DokumenSystemHelper
         $this->signer = $signer;
     }
 
-    /**
-     * Mengambil atau Membuat File Revisi
-     */
     public function getOrGenerateRevisi(Sidang $sidang)
     {
         return $this->processDocument(
             $sidang, 
             'LEMBAR_REVISI', 
-            'mahasiswa.sidang.revisi_pdf', 
+            'mahasiswa.revisi_pdf', 
             'Revisi_Sidang_'
         );
     }
 
-    /**
-     * Mengambil atau Membuat File Berita Acara
-     */
     public function getOrGenerateBeritaAcara(Sidang $sidang)
     {
-        // Pastikan relasi dosbing diload untuk BA
         $sidang->load(['tugasAkhir.dosenPembimbing1', 'tugasAkhir.dosenPembimbing2']);
-
         return $this->processDocument(
             $sidang, 
             'BERITA_ACARA', 
@@ -47,40 +39,40 @@ class DokumenSystemHelper
         );
     }
 
-    /**
-     * Logika Inti: Cek DB -> Jika null -> Generate -> Sign -> Save -> Return
-     */
     private function processDocument(Sidang $sidang, $jenisDokumen, $viewName, $prefixName, $extraData = [])
     {
-        // 1. CEK DATABASE
+        // 1. CARI FILE LAMA
         $existingDoc = DokumenHasilSidang::where('sidang_id', $sidang->id)
                                          ->where('jenis_dokumen', $jenisDokumen)
                                          ->latest()
                                          ->first();
 
-        // Jika ada di DB dan Fisik, kembalikan datanya
-        if ($existingDoc && Storage::exists($existingDoc->path_file)) {
-            return $existingDoc;
+        // 2. HAPUS FILE LAMA (PENTING AGAR TIDAK MUNCUL DATA LAMA TERUS)
+        if ($existingDoc) {
+            if (Storage::exists($existingDoc->path_file)) {
+                Storage::delete($existingDoc->path_file);
+            }
+            $existingDoc->delete();
         }
 
-        // 2. GENERATE PDF
+        // 3. GENERATE PDF BARU (DENGAN VIEW YANG SUDAH DIBERSIHKAN)
         $data = array_merge(['sidang' => $sidang], $extraData);
         $pdf = Pdf::loadView($viewName, $data)->setPaper('a4', 'portrait');
         $pdfContent = $pdf->output();
 
-        // 3. HASHING & SIGNING
+        // 4. HASHING & SIGNING
         $hashData = $this->signer->calculateHash($pdfContent);
         $signature = $this->signer->signWithSystemKey($hashData['raw_combined']);
 
-        // 4. SIMPAN FILE
+        // 5. SIMPAN FILE BARU
         $nrp = $sidang->tugasAkhir->mahasiswa->nrp;
-        $folder = strtolower($jenisDokumen); // lembar_revisi atau berita_acara
+        $folder = strtolower($jenisDokumen);
         $filename = $prefixName . $nrp . '_' . time() . '.pdf';
         $path = "generated_docs/{$folder}/" . $filename;
         
         Storage::put($path, $pdfContent);
 
-        // 5. SIMPAN KE DB
+        // 6. SIMPAN RECORD BARU KE DB
         return DokumenHasilSidang::create([
             'sidang_id' => $sidang->id,
             'jenis_dokumen' => $jenisDokumen,

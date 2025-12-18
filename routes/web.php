@@ -26,7 +26,9 @@ use App\Http\Controllers\Dosen\BimbinganController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\ValidasiController;
 use App\Http\Controllers\Staff\ArsipController;
+use App\Http\Controllers\Staff\PeriodeController;
 use App\Http\Controllers\Staff\JadwalExcelController; // <-- Controller Excel kita
+use App\Http\Controllers\Staff\JadwalMonitoringController; // <-- Controller Excel kita
 
 
 /*
@@ -70,11 +72,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/arsip/{tugasAkhir}/detail', [ArsipController::class, 'show'])->name('arsip.show');
         Route::get('/validasi/{id}/review', [ValidasiController::class, 'show'])->name('validasi.review');
         Route::post('/validasi/{id}/process', [ValidasiController::class, 'process'])->name('validasi.process');
-
+        Route::get('/periode/create', [PeriodeController::class, 'create'])->name('periode.create');
+        Route::post('/periode', [PeriodeController::class, 'store'])->name('periode.store');
+        Route::delete('/periode/{id}', [PeriodeController::class, 'destroy'])->name('periode.destroy');
         // Rute Export & Import Excel (Yang Benar)
         Route::get('/jadwal/export', [JadwalExcelController::class, 'exportTemplate'])->name('jadwal.export');
         Route::get('/jadwal/import', [JadwalExcelController::class, 'showImportForm'])->name('jadwal.import.form');
         Route::post('/jadwal/import', [JadwalExcelController::class, 'processImport'])->name('jadwal.import.process');
+        Route::get('/jadwal/monitoring', [JadwalMonitoringController::class, 'index'])
+            ->name('jadwal.monitoring');
     });
 
     // --- GRUP ADMIN ---

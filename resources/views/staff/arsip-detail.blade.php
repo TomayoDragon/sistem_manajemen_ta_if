@@ -35,7 +35,15 @@
         
         .file-sub-list { margin-top: 10px; padding-left: 20px; }
         .file-sub-list li { margin-bottom: 5px; font-size: 0.9rem; }
-        .link-verifikasi { color: #0a2e6c; text-decoration: none; font-weight: 600; }
+        
+        /* Modifikasi Link Verifikasi agar terlihat seperti tombol atau link rapi */
+        .link-verifikasi { 
+            color: #0a2e6c; 
+            text-decoration: none; 
+            font-weight: 600; 
+            margin-left: 5px;
+        }
+        .link-verifikasi:hover { text-decoration: underline; }
 
         /* --- STYLE TAMBAHAN UNTUK TOMBOL DOWNLOAD --- */
         .btn-download {
@@ -124,8 +132,16 @@
                         @forelse ($pengajuan->dokumen as $dokumen)
                             <li>
                                 <strong>{{ $dokumen->tipe_dokumen }}</strong> ({{ $dokumen->nama_file_asli }}) - 
-                                <a href="{{ route('dokumen.download', $dokumen->id) }}" target="_blank" class="link-verifikasi">Download</a> |
-                                <a href="{{ route('integritas.show', $dokumen->id) }}" target="_blank" class="link-verifikasi">Cek Integritas</a>
+                                
+                                {{-- TOMBOL PREVIEW DOKUMEN PENGAJUAN (Skripsi, KHS, dll) --}}
+                                <a href="{{ route('dokumen.download', ['dokumen' => $dokumen->id, 'mode' => 'view']) }}" 
+                                   target="_blank" class="link-verifikasi">
+                                   <i class="fa fa-eye"></i> Lihat
+                                </a> |
+
+                                <a href="{{ route('integritas.show', $dokumen->id) }}" target="_blank" class="link-verifikasi">
+                                   <i class="fa fa-check-circle"></i> Cek Integritas
+                                </a>
                             </li>
                         @empty
                             <li style="color: red;">Tidak ada dokumen terlampir.</li>
@@ -152,7 +168,6 @@
                         <th>Jadwal</th>
                         <th>Ruangan</th>
                         <th>Hasil Ujian</th>
-                        {{-- KOLOM BARU --}}
                         <th>Dokumen Hasil</th>
                     </tr>
                 </thead>
@@ -166,7 +181,7 @@
                             <td style="text-align: center;">-</td>
                         </tr>
                     @empty
-                        @endforelse
+                    @endforelse
                     
                     @forelse ($ta->sidangs as $sidang)
                         <tr>
@@ -177,31 +192,34 @@
                                 {{ str_replace('_', ' ', $sidang->status) }}
                             </td>
                             
-                            {{-- LOGIKA TOMBOL DOWNLOAD (MENGGUNAKAN RUTE GLOBAL) --}}
+                            {{-- LOGIKA TOMBOL PREVIEW (TAB BARU) UNTUK HASIL SIDANG --}}
                             <td style="text-align: center;">
                                 @if(in_array($sidang->status, ['LULUS', 'LULUS_REVISI', 'TIDAK_LULUS']))
-                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi']) }}" 
-                                       target="_blank" class="btn-download btn-revisi" title="Download Revisi">
-                                       Revisi
+                                    
+                                    {{-- TOMBOL LIHAT REVISI --}}
+                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi', 'mode' => 'view']) }}" 
+                                       target="_blank" class="btn-download btn-revisi" title="Lihat Revisi">
+                                       <i class="fa fa-eye"></i> Revisi
                                     </a>
-                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara']) }}" 
-                                       target="_blank" class="btn-download btn-ba" title="Download Berita Acara">
-                                       BA
+
+                                    {{-- TOMBOL LIHAT BERITA ACARA --}}
+                                    <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara', 'mode' => 'view']) }}" 
+                                       target="_blank" class="btn-download btn-ba" title="Lihat Berita Acara">
+                                       <i class="fa fa-file-pdf"></i> BA
                                     </a>
+
                                 @else
                                     <span class="text-muted">Belum tersedia</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
-                        @endforelse
+                    @endforelse
 
                     @if($ta->lstas->isEmpty() && $ta->sidangs->isEmpty())
                         <tr><td colspan="5" style="text-align: center; color: #777;">Tidak ada riwayat LSTA/Sidang.</td></tr>
                     @endif
                 </tbody>
-
-                
             </table>
         </div>
     </div>
