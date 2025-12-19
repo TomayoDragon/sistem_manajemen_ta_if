@@ -66,21 +66,39 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // --- GRUP STAFF ---
+    // --- GRUP STAFF ---
     Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
+
+        // 1. Dashboard
         Route::get('/dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
+
+        // 2. Manajemen Arsip
         Route::get('/arsip', [ArsipController::class, 'index'])->name('arsip.index');
         Route::get('/arsip/{tugasAkhir}/detail', [ArsipController::class, 'show'])->name('arsip.show');
+
+        // 3. Validasi Berkas
         Route::get('/validasi/{id}/review', [ValidasiController::class, 'show'])->name('validasi.review');
         Route::post('/validasi/{id}/process', [ValidasiController::class, 'process'])->name('validasi.process');
+
+        // 4. Periode Sidang
         Route::get('/periode/create', [PeriodeController::class, 'create'])->name('periode.create');
-        Route::post('/periode', [PeriodeController::class, 'store'])->name('periode.store');
-        Route::delete('/periode/{id}', [PeriodeController::class, 'destroy'])->name('periode.destroy');
-        // Rute Export & Import Excel (Yang Benar)
+        Route::post('/periode/akademik', [PeriodeController::class, 'storeAkademik'])->name('periode.store');
+        Route::post('/periode/sidang', [PeriodeController::class, 'storeSidang'])->name('periode.storeSidang');
+        Route::delete('/periode/{type}/{id}', [PeriodeController::class, 'destroy'])->name('periode.destroy');
+        Route::patch('/periode/{type}/{id}/activate', [PeriodeController::class, 'activate'])->name('periode.activate');
+
+        // 5. MANAJEMEN JADWAL (Excel & Atur Jadwal)
+        Route::get('/jadwal/atur', [JadwalExcelController::class, 'index'])->name('jadwal.atur');
+
+        // Proses Export & Import
         Route::get('/jadwal/export', [JadwalExcelController::class, 'exportTemplate'])->name('jadwal.export');
         Route::get('/jadwal/import', [JadwalExcelController::class, 'showImportForm'])->name('jadwal.import.form');
         Route::post('/jadwal/import', [JadwalExcelController::class, 'processImport'])->name('jadwal.import.process');
-        Route::get('/jadwal/monitoring', [JadwalMonitoringController::class, 'index'])
-            ->name('jadwal.monitoring');
+
+        // 6. MONITORING JADWAL & DELETE
+        Route::get('/jadwal/monitoring', [JadwalMonitoringController::class, 'index'])->name('jadwal.monitoring');
+        Route::delete('/jadwal/monitoring/sidang/{id}', [JadwalMonitoringController::class, 'destroy'])->name('sidang.destroy');
+        Route::delete('/jadwal/monitoring/lsta/{id}', [JadwalMonitoringController::class, 'destroyLsta'])->name('lsta.destroy');
     });
 
     // --- GRUP ADMIN ---

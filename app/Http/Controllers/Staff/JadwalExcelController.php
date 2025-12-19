@@ -27,6 +27,23 @@ use App\Models\Periode;
 
 class JadwalExcelController extends Controller
 {
+    /**
+     * [BARU] Menampilkan Halaman "Atur Jadwal"
+     * Menampilkan daftar mahasiswa yang sudah validasi TERIMA tapi belum punya jadwal.
+     */
+    public function index()
+    {
+        // Ambil data pengajuan yang SUDAH DITERIMA
+        // Logic: Status 'TERIMA' dan belum ada di tabel 'sidangs' (agar tidak duplikat di list)
+        $siapDijadwalkan = PengajuanSidang::with(['tugasAkhir.mahasiswa', 'tugasAkhir.dosenPembimbing1', 'tugasAkhir.dosenPembimbing2'])
+            ->where('status_validasi', 'TERIMA')
+            ->whereDoesntHave('sidang') // Pastikan relasi 'sidang' ada di model PengajuanSidang
+            ->orderBy('validated_at', 'asc') // Urutkan dari yang duluan disetujui
+            ->get();
+
+        return view('staff.atur', compact('siapDijadwalkan'));
+    }
+
     public function showImportForm()
     {
         return view('staff.jadwal-import');
@@ -70,13 +87,11 @@ class JadwalExcelController extends Controller
         // 4. Loop & Isi Data Otomatis (AUTO-FILL LOGIC)
         foreach ($acceptedPengajuans as $pengajuan) {
             // A. Tentukan Waktu (Sequential per 2 jam)
-            // Setiap 4 mahasiswa, ganti hari (asumsi 1 hari max 4 sidang per ruangan)
             $dayOffset = floor($counter / 4);
             $timeOffset = $counter % 4;
 
-            $jadwalDraft = $startDate->copy()->addDays($dayOffset)->addHours($timeOffset * 2); // Jeda 2 jam
+            $jadwalDraft = $startDate->copy()->addDays($dayOffset)->addHours($timeOffset * 2);
 
-            // Hindari hari Sabtu/Minggu (Simple Logic)
             if ($jadwalDraft->isWeekend()) {
                 $jadwalDraft->addDays(2);
             }
@@ -87,16 +102,13 @@ class JadwalExcelController extends Controller
                 $pengajuan->tugasAkhir->dosen_pembimbing_2_id
             ];
 
-            // Ambil dosen yang BUKAN pembimbing
             $availablePenguji = $allDosen->whereNotIn('id', $pembimbingIds);
 
-            // Pilih 2 penguji acak
             if ($availablePenguji->count() >= 2) {
                 $randomPenguji = $availablePenguji->random(2);
                 $ketua = $randomPenguji[0];
                 $sekretaris = $randomPenguji[1];
             } else {
-                // Fallback jika data dosen kurang
                 $ketua = $allDosen->first();
                 $sekretaris = $allDosen->last();
             }
@@ -107,11 +119,9 @@ class JadwalExcelController extends Controller
                 Cell::fromValue($pengajuan->tugasAkhir->mahasiswa->nama_lengkap),
                 Cell::fromValue($pengajuan->tugasAkhir->dosenPembimbing1->nama_lengkap),
                 Cell::fromValue($pengajuan->tugasAkhir->dosenPembimbing2->nama_lengkap),
-
-                // Data Suggestion (Bisa diedit Staf nanti)
                 Cell::fromValue($jadwalDraft->format('d/m/Y')),
                 Cell::fromValue($jadwalDraft->format('H:i')),
-                Cell::fromValue($dummyRooms[array_rand($dummyRooms)]), // Ruang Acak
+                Cell::fromValue($dummyRooms[array_rand($dummyRooms)]),
                 Cell::fromValue($ketua->nama_lengkap),
                 Cell::fromValue($sekretaris->nama_lengkap),
             ];
@@ -123,6 +133,7 @@ class JadwalExcelController extends Controller
         $writer->close();
         return response()->download($filePath, 'DRAF_JADWAL_AUTO.xlsx')->deleteFileAfterSend(true);
     }
+
     /**
      * Memproses file Excel (REVISI: MENDUKUNG OVERWRITE).
      */
@@ -165,8 +176,7 @@ class JadwalExcelController extends Controller
                     $rowNumber++;
 
                     $nrp = $data['nrp'] ?? null;
-                    if (!$nrp)
-                        continue;
+                    if (!$nrp) continue;
 
                     $tanggal = $data['tanggal'] ?? null;
                     $jam = $data['jam'] ?? null;
@@ -191,9 +201,6 @@ class JadwalExcelController extends Controller
                         continue;
                     }
 
-                    // --- PERBAIKAN UTAMA DI SINI ---
-                    // Kita mencari pengajuan TERIMA, TAPI KITA HAPUS SYARAT 'whereNull'
-                    // Agar kita bisa menemukan (dan mengupdate) pengajuan yang sudah ada jadwalnya.
                     $pengajuan = $tugasAkhir->pengajuanSidangs()
                         ->where('status_validasi', 'TERIMA')
                         ->latest()
@@ -203,7 +210,6 @@ class JadwalExcelController extends Controller
                         $errors[] = "Baris $rowNumber: Berkas $nrp belum divalidasi 'TERIMA'.";
                         continue;
                     }
-                    // -------------------------------
 
                     $ketua = Dosen::where('nama_lengkap', 'LIKE', $namaKetua . '%')->first();
                     $sekretaris = Dosen::where('nama_lengkap', 'LIKE', $namaSekretaris . '%')->first();
@@ -221,9 +227,6 @@ class JadwalExcelController extends Controller
                         continue;
                     }
 
-                    // --- UPDATE OR CREATE JADWAL ---
-                    // Karena kita pakai 'updateOrCreate', jika data sudah ada, akan ditimpa (Revisi)
-
                     // 1. Update/Create LSTA
                     Lsta::updateOrCreate(
                         [
@@ -232,7 +235,7 @@ class JadwalExcelController extends Controller
                         ],
                         [
                             'event_sidang_id' => $activeEvent->id,
-                            'dosen_penguji_id' => $ketua->id,
+                            'dosen_penguji_id' => $ketua->id, // Menggunakan ketua sebagai penguji LSTA
                             'jadwal' => $parsedJadwal,
                             'ruangan' => $ruang,
                             'status' => 'TERJADWAL'
@@ -255,7 +258,6 @@ class JadwalExcelController extends Controller
                         ]
                     );
 
-                    // 3. Pastikan pengajuan terkunci ke event ini
                     $pengajuan->event_sidang_id = $activeEvent->id;
                     $pengajuan->save();
                 }
@@ -268,7 +270,9 @@ class JadwalExcelController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('staff.dashboard')->with('success', 'Jadwal berhasil diperbarui (Revisi Tersimpan).');
+            
+            // Redirect ke halaman Atur Jadwal lagi (biar list-nya kosong/update)
+            return redirect()->route('staff.jadwal.atur')->with('success', 'Jadwal berhasil diperbarui dan tersimpan ke sistem.');
 
         } catch (\Exception $e) {
             DB::rollBack();

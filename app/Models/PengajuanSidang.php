@@ -11,20 +11,16 @@ class PengajuanSidang extends Model
 
     protected $table = 'pengajuan_sidangs';
 
-    /**
-     * Kolom yang boleh diisi (mass assignable)
-     * (Ini adalah versi yang benar setelah kita hapus path file)
-     */
     protected $fillable = [
         'tugas_akhir_id',
-        'event_sidang_id', // <-- TAMBAHKAN INI
+        'event_sidang_id',
+        'jenis_sidang', // <-- PASTIKAN KOLOM INI ADA (sesuai diskusi kita sebelumnya)
         'status_validasi',
         'catatan_validasi',
         'validator_id',
         'validated_at',
     ];
 
-    // --- INI ADALAH FUNGSI YANG HILANG ---
     /**
      * Relasi: Pengajuan ini milik TA mana.
      */
@@ -32,7 +28,6 @@ class PengajuanSidang extends Model
     {
         return $this->belongsTo(TugasAkhir::class, 'tugas_akhir_id');
     }
-    // --- AKHIR FUNGSI YANG HILANG ---
 
     /**
      * Relasi: Siapa staf yang memvalidasi.
@@ -43,30 +38,41 @@ class PengajuanSidang extends Model
     }
 
     /**
-     * Relasi: LSTA yang dibuat dari pengajuan ini
+     * Relasi ke Event Sidang (Periode)
      */
-    public function lstas()
-    {
-        return $this->hasMany(Lsta::class, 'pengajuan_sidang_id');
-    }
-
-    /**
-     * Relasi: Sidang yang dibuat dari pengajuan ini
-     */
-    public function sidangs()
-    {
-        return $this->hasMany(Sidang::class, 'pengajuan_sidang_id');
-    }
-
-    /**
-     * Relasi: Satu paket pengajuan memiliki BANYAK dokumen.
-     */
-    public function dokumen()
-    {
-        return $this->hasMany(DokumenPengajuan::class, 'pengajuan_sidang_id');
-    }
     public function eventSidang()
     {
         return $this->belongsTo(EventSidang::class, 'event_sidang_id');
+    }
+
+    /**
+     * Relasi: Dokumen syarat (Banyak dokumen untuk 1 pengajuan)
+     */
+    public function dokumen()
+    {
+        // Sesuaikan nama Model dokumen Anda, misalnya DokumenPengajuanSidang atau DokumenPengajuan
+        return $this->hasMany(DokumenPengajuan::class, 'pengajuan_sidang_id');
+    }
+
+    // =================================================================
+    // PERBAIKAN PENTING DI SINI (Gunakan Singlar 'sidang' & hasOne)
+    // =================================================================
+
+    /**
+     * Relasi: Jadwal LSTA yang dihasilkan dari pengajuan ini
+     * (Gunakan hasOne karena 1 pengajuan = 1 jadwal)
+     */
+    public function lsta()
+    {
+        return $this->hasOne(Lsta::class, 'pengajuan_sidang_id');
+    }
+
+    /**
+     * Relasi: Jadwal Sidang yang dihasilkan dari pengajuan ini
+     * (Nama fungsi harus 'sidang' agar cocok dengan controller whereDoesntHave('sidang'))
+     */
+    public function sidang()
+    {
+        return $this->hasOne(Sidang::class, 'pengajuan_sidang_id');
     }
 }

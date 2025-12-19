@@ -10,34 +10,27 @@ use Illuminate\Support\Facades\Auth;
 class DashboardController extends Controller
 {
     /**
-     * Menampilkan halaman dashboard staf (Validasi & Siap Jadwal).
+     * Menampilkan halaman dashboard staf.
+     * HANYA MENAMPILKAN ANTRIAN VALIDASI (PENDING).
+     * (Fitur penjadwalan sudah dipindah ke menu 'Atur Jadwal')
      */
     public function index()
     {
         $staff = Auth::user()->staff;
 
-        // 1. AMBIL PAKET YANG MASIH 'PENDING' (untuk tabel 1)
+        // 1. AMBIL PAKET YANG MASIH 'PENDING'
+        // Hanya ini yang dibutuhkan di Dashboard sekarang.
         $pendingPengajuans = PengajuanSidang::where('status_validasi', 'PENDING')
-                                  ->with('tugasAkhir.mahasiswa')
-                                  ->latest()
-                                  ->get();
+            ->with('tugasAkhir.mahasiswa')
+            ->latest()
+            ->get();
 
-        // 2. AMBIL PAKET YANG 'TERIMA' TAPI BELUM PUNYA JADWAL (untuk tabel 2)
-        $acceptedPengajuans = PengajuanSidang::where('status_validasi', 'TERIMA')
-                                  ->where(function ($query) {
-                                      // Ambil jika BELUM punya LSTA ATAU BELUM punya Sidang
-                                      $query->doesntHave('lstas')
-                                            ->orDoesntHave('sidangs');
-                                  })
-                                  ->with('tugasAkhir.mahasiswa')
-                                  ->latest('validated_at')
-                                  ->get();
-        
-        // 3. Kirim data ke view
+        // BAGIAN $acceptedPengajuans SUDAH DIHAPUS 
+        // Agar tidak error relasi dan tidak memberatkan query database.
+
         return view('staff.dashboard', [
             'staff' => $staff,
             'pendingPengajuans' => $pendingPengajuans,
-            'acceptedPengajuans' => $acceptedPengajuans,
         ]);
     }
 }

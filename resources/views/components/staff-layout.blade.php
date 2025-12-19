@@ -269,6 +269,12 @@
                         Validasi Berkas
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('staff.jadwal.atur') }}"
+                        class="nav-link {{ request()->routeIs('staff.jadwal.atur') ? 'active' : '' }}">
+                        <i class="fa fa-calendar-alt"></i> Atur Jadwal
+                    </a>
+                </li>
                 <!-- Menu Staff: Arsip -->
                 <li>
                     <a href="{{ route('staff.arsip.index') }}"

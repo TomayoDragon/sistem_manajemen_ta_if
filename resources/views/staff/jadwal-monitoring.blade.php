@@ -5,30 +5,124 @@
 
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
-    
+
     <style>
-        .content-box { background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eef2f7; }
-        table.dataTable thead th { background-color: #0a2e6c !important; color: #ffffff !important; font-weight: 600; padding: 12px; border-bottom: none; }
-        table.dataTable tbody td { padding: 12px; vertical-align: middle; font-size: 0.95rem; color: #333; border-bottom: 1px solid #f0f0f0; }
-        table.dataTable tbody tr:hover { background-color: #f8f9fa !important; }
+        .content-box {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eef2f7;
+        }
 
-        .badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-lsta { background-color: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
-        .badge-sidang { background-color: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-        .badge-terjadwal { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-        .badge-selesai { background-color: #eceff1; color: #546e7a; border: 1px solid #cfd8dc; }
+        table.dataTable thead th {
+            background-color: #0a2e6c !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            padding: 12px;
+            border-bottom: none;
+        }
 
-        .dataTables_filter input { border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; outline: none; transition: border-color 0.3s; }
-        .dataTables_filter input:focus { border-color: #0a2e6c; }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current { background: #0a2e6c !important; color: white !important; border: 1px solid #0a2e6c !important; border-radius: 4px; }
+        table.dataTable tbody td {
+            padding: 12px;
+            vertical-align: middle;
+            font-size: 0.95rem;
+            color: #333;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        table.dataTable tbody tr:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-lsta {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+
+        .badge-sidang {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffe0b2;
+        }
+
+        .badge-terjadwal {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .badge-selesai {
+            background-color: #eceff1;
+            color: #546e7a;
+            border: 1px solid #cfd8dc;
+        }
+
+        .dataTables_filter input {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .dataTables_filter input:focus {
+            border-color: #0a2e6c;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #0a2e6c !important;
+            color: white !important;
+            border: 1px solid #0a2e6c !important;
+            border-radius: 4px;
+        }
+
+        .btn-delete {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background-color: #dc2626;
+            color: white;
+        }
     </style>
 
     <div class="flex justify-between items-center mb-6">
         <h1 class="content-title" style="margin-bottom: 0;">Monitoring Seluruh Jadwal</h1>
-        <a href="{{ request()->url() }}" class="btn-refresh" style="color: #0a2e6c; text-decoration: none; font-weight: 600;">
+        <a href="{{ request()->url() }}" class="btn-refresh"
+            style="color: #0a2e6c; text-decoration: none; font-weight: 600;">
             <i class="fa-solid fa-sync"></i> Refresh Data
         </a>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success mb-4"
+            style="background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px;">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger mb-4"
+            style="background: #f8d7da; color: #842029; padding: 15px; border-radius: 8px;">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <div class="content-box">
         <p class="text-gray-600 mb-4">
@@ -37,12 +131,15 @@
 
         <table id="monitoringTable" class="display responsive nowrap" style="width:100%">
             <thead>
+                {{-- Total ada 7 Kolom --}}
                 <tr>
                     <th width="5%">Tipe</th>
                     <th width="12%">Waktu & Ruang</th>
                     <th width="20%">Mahasiswa</th>
-                    <th width="20%">Dosen Pembimbing</th> <th width="15%">Dosen Penguji</th>
+                    <th width="20%">Dosen Pembimbing</th>
+                    <th width="15%">Dosen Penguji</th>
                     <th width="8%">Status</th>
+                    <th width="5%" class="text-center">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,17 +154,21 @@
                         </td>
                         <td>
                             <div style="font-weight: 700; color: #2c3e50;">{{ $jadwal['tanggal'] }}</div>
-                            <div style="font-size: 0.9rem; margin-top: 4px;"><i class="fa-regular fa-clock"></i> {{ $jadwal['jam'] }} WIB</div>
-                            <div style="font-size: 0.85rem; color: #555; margin-top: 4px;"><i class="fa-solid fa-location-dot"></i> {{ $jadwal['ruangan'] }}</div>
+                            <div style="font-size: 0.9rem; margin-top: 4px;"><i class="fa-regular fa-clock"></i>
+                                {{ $jadwal['jam'] }} WIB</div>
+                            <div style="font-size: 0.85rem; color: #555; margin-top: 4px;"><i
+                                    class="fa-solid fa-location-dot"></i> {{ $jadwal['ruangan'] }}</div>
                         </td>
                         <td>
                             <div style="font-weight: 600; color: #000;">{{ explode(' (', $jadwal['mahasiswa'])[0] }}</div>
-                            <div style="font-size: 0.85rem; color: #666;">{{ Str::between($jadwal['mahasiswa'], '(', ')') }}</div>
-                            <div style="font-size: 0.8rem; color: #888; margin-top: 5px; font-style: italic; white-space: normal;">
+                            <div style="font-size: 0.85rem; color: #666;">{{ Str::between($jadwal['mahasiswa'], '(', ')') }}
+                            </div>
+                            <div
+                                style="font-size: 0.8rem; color: #888; margin-top: 5px; font-style: italic; white-space: normal;">
                                 "{{ Str::limit($jadwal['judul'], 60) }}"
                             </div>
                         </td>
-                        
+
                         <td style="font-size: 0.9rem; line-height: 1.5;">
                             {!! $jadwal['pembimbing'] !!}
                         </td>
@@ -75,11 +176,42 @@
                         <td style="font-size: 0.9rem; line-height: 1.5;">
                             {!! $jadwal['penguji'] !!}
                         </td>
-                        
+
                         <td class="text-center">
-                            <span class="badge {{ $jadwal['status'] == 'TERJADWAL' ? 'badge-terjadwal' : 'badge-selesai' }}">
+                            <span
+                                class="badge {{ $jadwal['status'] == 'TERJADWAL' ? 'badge-terjadwal' : 'badge-selesai' }}">
                                 {{ $jadwal['status'] }}
                             </span>
+                        </td>
+
+                       {{-- KOLOM AKSI (REVISI LENGKAP) --}}
+                        <td class="text-center">
+                            
+                            {{-- LOGIKA 1: JIKA TIPE SIDANG TA --}}
+                            @if($jadwal['tipe'] == 'SIDANG TA')
+                                <form action="{{ route('staff.sidang.destroy', $jadwal['id']) }}" method="POST" 
+                                      onsubmit="return confirm('Yakin ingin menghapus jadwal SIDANG ini?');"
+                                      style="display: inline-block;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-delete" title="Hapus Jadwal Sidang">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+
+                            {{-- LOGIKA 2: JIKA TIPE LSTA --}}
+                            @elseif($jadwal['tipe'] == 'LSTA')
+                                <form action="{{ route('staff.lsta.destroy', $jadwal['id']) }}" method="POST" 
+                                      onsubmit="return confirm('Yakin ingin menghapus jadwal LSTA ini?');"
+                                      style="display: inline-block;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-delete" title="Hapus Jadwal LSTA" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            @endif
+
                         </td>
                     </tr>
                 @endforeach
@@ -92,10 +224,10 @@
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('#monitoringTable').DataTable({
                 responsive: true,
-                order: [[ 1, "asc" ]],
+                order: [[1, "asc"]],
                 pageLength: 10,
                 language: {
                     search: "Cari Data:",
@@ -108,9 +240,11 @@
                     paginate: { first: "<<", last: ">>", next: ">", previous: "<" }
                 },
                 columnDefs: [
-                    { responsivePriority: 1, targets: 0 },
-                    { responsivePriority: 2, targets: 2 },
-                    { responsivePriority: 3, targets: 5 }
+                    // PERBAIKAN DI SINI: Target index harus sesuai (0 sampai 6)
+                    { responsivePriority: 1, targets: 0 }, // Tipe
+                    { responsivePriority: 2, targets: 2 }, // Mahasiswa
+                    { responsivePriority: 3, targets: 5 }, // Status (Index 5)
+                    { orderable: false, targets: 6 }       // Aksi (Index 6) - SEBELUMNYA ERROR KARENA DI-SET 7
                 ]
             });
         });

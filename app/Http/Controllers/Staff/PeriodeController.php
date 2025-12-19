@@ -5,27 +5,27 @@ namespace App\Http\Controllers\Staff;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Periode;
+use App\Models\EventSidang;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PeriodeController extends Controller
 {
-    /**
-     * Menampilkan form tambah periode DAN daftar periode.
-     */
     public function create()
     {
-        // Ambil semua periode, urutkan dari yang terbaru
+        // 1. Ambil Data Periode Akademik
         $periodes = Periode::orderBy('tanggal_mulai', 'desc')->get();
+
+        // 2. Ambil Data Periode Sidang (Event)
+        $events = EventSidang::with('periode')
+                    ->orderBy('tanggal_mulai', 'desc')
+                    ->get();
         
-        return view('staff.periode-create', [
-            'periodes' => $periodes
-        ]);
+        return view('staff.periode-create', compact('periodes', 'events'));
     }
 
-    /**
-     * Menyimpan periode baru ke database.
-     */
-    public function store(Request $request)
+    // --- LOGIC PERIODE AKADEMIK ---
+    public function storeAkademik(Request $request)
     {
         $request->validate([
             'nama' => 'required|string|max:255',
@@ -34,46 +34,110 @@ class PeriodeController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        if ($request->has('is_active') && $request->is_active == 1) {
-            Periode::query()->update(['is_active' => false]);
-        }
+        DB::transaction(function () use ($request) {
+            // Jika set aktif, matikan yang lain
+            if ($request->has('is_active')) {
+                Periode::query()->update(['is_active' => false]);
+            }
 
-        Periode::create([
-            'nama' => $request->nama,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_selesai' => $request->tanggal_selesai,
-            'is_active' => $request->has('is_active') ? true : false,
-        ]);
+            Periode::create([
+                'nama' => $request->nama,
+                'tanggal_mulai' => $request->tanggal_mulai,
+                'tanggal_selesai' => $request->tanggal_selesai,
+                'is_active' => $request->has('is_active'),
+            ]);
+        });
 
-        return redirect()->route('periode.create') // Redirect ke halaman yang sama
-            ->with('success', 'Periode baru berhasil ditambahkan.');
+        return back()->with('success', 'Periode Akademik berhasil ditambahkan.');
     }
 
-    /**
-     * Menghapus periode (Hanya jika belum dimulai).
-     */
-    public function destroy($id)
+    // --- LOGIC PERIODE SIDANG ---
+    public function storeSidang(Request $request)
     {
-        $periode = Periode::findOrFail($id);
+        $request->validate([
+            'periode_id' => 'required|exists:periodes,id',
+            'nama_event' => 'required|string|max:255',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after:tanggal_mulai',
+            'is_published' => 'nullable|boolean', // is_published = is_active
+        ]);
 
-        // LOGIKA PENGAMAN:
-        // Jika tanggal mulai <= hari ini, berarti sedang berjalan atau sudah lewat.
-        // Maka TIDAK BOLEH dihapus.
-        if ($periode->tanggal_mulai <= now()->format('Y-m-d')) {
-            return redirect()->back()
-                ->with('error', 'Gagal menghapus! Periode ini sedang berjalan atau sudah lewat.');
+        // Cek apakah tanggal event berada dalam range Periode Akademik (Opsional, tapi bagus)
+        $periodeInduk = Periode::find($request->periode_id);
+        if ($request->tanggal_mulai < $periodeInduk->tanggal_mulai || $request->tanggal_selesai > $periodeInduk->tanggal_selesai) {
+             return back()->with('error', 'Tanggal Sidang harus berada di dalam rentang Tanggal Periode Akademik (' . $periodeInduk->nama . ').');
         }
 
-        // Cek relasi (opsional tapi disarankan)
-        // Jika sudah ada Tugas Akhir yang terhubung, tolak
-        if ($periode->tugasAkhirs()->exists()) {
-             return redirect()->back()
-                ->with('error', 'Gagal menghapus! Sudah ada mahasiswa yang terdaftar di periode ini.');
+        EventSidang::create([
+            'periode_id' => $request->periode_id,
+            'nama_event' => $request->nama_event,
+            'tipe' => 'SIDANG_TA', // Default tipe
+            'tanggal_mulai' => $request->tanggal_mulai,
+            'tanggal_selesai' => $request->tanggal_selesai,
+            'is_published' => $request->has('is_published'),
+        ]);
+
+        return back()->with('success', 'Periode Sidang berhasil ditambahkan.');
+    }
+
+    // --- LOGIC MENGAKTIFKAN PERIODE (Check Box / Button) ---
+    public function activate($type, $id)
+    {
+        $now = Carbon::now()->format('Y-m-d');
+
+        if ($type == 'akademik') {
+            $item = Periode::findOrFail($id);
+            
+            // Validasi Tanggal
+            if ($item->tanggal_selesai < $now) {
+                return back()->with('error', 'Gagal! Periode ini sudah berakhir dan tidak bisa diaktifkan kembali.');
+            }
+
+            // Matikan semua, nyalakan ini
+            Periode::query()->update(['is_active' => false]);
+            $item->update(['is_active' => true]);
+
+        } elseif ($type == 'sidang') {
+            $item = EventSidang::findOrFail($id);
+
+            // Validasi Tanggal
+            if ($item->tanggal_selesai < $now) {
+                return back()->with('error', 'Gagal! Periode Sidang ini sudah berakhir.');
+            }
+
+            // Toggle (Sidang mungkin bisa aktif bersamaan, atau mau single active juga?)
+            // Disini saya buat toggle on/off biasa.
+            $newState = !$item->is_published;
+            $item->update(['is_published' => $newState]);
         }
 
-        $periode->delete();
+        return back()->with('success', 'Status periode berhasil diperbarui.');
+    }
 
-        return redirect()->back()
-            ->with('success', 'Periode masa depan berhasil dihapus.');
+    // --- LOGIC HAPUS ---
+    public function destroy($type, $id)
+    {
+        $now = Carbon::now()->format('Y-m-d');
+
+        if ($type == 'akademik') {
+            $item = Periode::findOrFail($id);
+            $relationCheck = $item->tugasAkhirs()->exists();
+        } else {
+            $item = EventSidang::findOrFail($id);
+            $relationCheck = $item->pengajuanSidangs()->exists();
+        }
+
+        // 1. Cek apakah sedang berjalan/lewat
+        if ($item->tanggal_mulai <= $now) {
+            return back()->with('error', 'Tidak bisa menghapus periode yang sedang berjalan atau sudah lewat.');
+        }
+
+        // 2. Cek Relasi Data
+        if ($relationCheck) {
+            return back()->with('error', 'Gagal! Data sudah digunakan oleh Mahasiswa.');
+        }
+
+        $item->delete();
+        return back()->with('success', 'Periode berhasil dihapus.');
     }
 }

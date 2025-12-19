@@ -1,142 +1,206 @@
 <x-staff-layout>
-    <x-slot name="title">
-        Kelola Periode Akademik
-    </x-slot>
+    <x-slot name="title">Kelola Periode</x-slot>
 
     <style>
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: 700; margin-bottom: 8px; color: #333; }
-        .form-input { 
-            width: 100%; padding: 12px; font-size: 1rem; 
-            border: 1px solid #ccc; border-radius: 8px; 
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 700; margin-bottom: 5px; color: #333; font-size: 0.9rem;}
+        .form-input, .form-select { 
+            width: 100%; padding: 10px; font-size: 0.95rem; 
+            border: 1px solid #ccc; border-radius: 6px; 
         }
         .btn-submit {
-            padding: 12px 30px; font-size: 1rem; font-weight: 700; 
-            color: white; background-color: #0a2e6c; border: none; 
-            border-radius: 8px; cursor: pointer;
+            width: 100%; padding: 10px; font-weight: 700; color: white; border: none; border-radius: 6px; cursor: pointer;
         }
-        .checkbox-wrapper {
-            display: flex; align-items: center; margin-top: 10px;
-        }
-        .checkbox-wrapper input { width: 20px; height: 20px; margin-right: 10px; }
+        .btn-blue { background-color: #0a2e6c; }
+        .btn-green { background-color: #16a085; }
 
-        /* Style Tabel Bawah */
-        .table-wrapper { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .table-wrapper th, .table-wrapper td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        .table-wrapper th { background-color: #f4f4f4; font-weight: 700; }
-        
-        .badge { padding: 5px 10px; border-radius: 5px; font-size: 0.85rem; font-weight: bold; }
-        .badge-active { background-color: #2ecc71; color: white; }
-        .badge-inactive { background-color: #95a5a6; color: white; }
+        /* Layout 2 Kolom */
+        .grid-container {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 25px;
+        }
+        @media (max-width: 900px) { .grid-container { grid-template-columns: 1fr; } }
 
-        .btn-delete {
-            padding: 5px 10px; background-color: #e74c3c; color: white; 
-            border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem;
-        }
-        .btn-delete:hover { background-color: #c0392b; }
+        /* Badge & Table */
+        .table-wrapper { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        .table-wrapper th, .table-wrapper td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        .table-wrapper th { background-color: #f8f9fa; font-weight: 700; }
         
-        .status-locked {
-            color: #777; font-style: italic; font-size: 0.9rem;
-        }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; display: inline-block;}
+        .badge-active { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .badge-inactive { background-color: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+        .badge-expired { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .btn-icon { background: none; border: none; cursor: pointer; padding: 5px; font-size: 1rem; }
+        .text-danger { color: #e74c3c; }
+        .text-success { color: #2ecc71; }
+        .text-muted { color: #ccc; }
     </style>
 
+    {{-- Notifikasi --}}
     @if (session('success'))
-        <div class="content-box" style="background-color: #eBffeb; color: #0a0; margin-bottom: 20px;">
-            {{ session('success') }}
-        </div>
+        <div class="content-box" style="background-color: #eBffeb; color: #0a0; margin-bottom: 20px;">{{ session('success') }}</div>
     @endif
     @if (session('error'))
-        <div class="content-box" style="background-color: #ffebeB; color: #a00; margin-bottom: 20px;">
-            {{ session('error') }}
-        </div>
+        <div class="content-box" style="background-color: #ffebeB; color: #a00; margin-bottom: 20px;">{{ session('error') }}</div>
     @endif
 
-    <h1 class="content-title">Tambah Periode Baru</h1>
-
-    <div class="content-box">
-        <form action="{{ route('staff.periode.store') }}" method="POST">
-            @csrf
-            <div class="form-group">
-                <label for="nama">Nama Periode</label>
-                <input type="text" name="nama" id="nama" class="form-input" 
-                       placeholder="Contoh: Semester Ganjil 2026/2027" required>
+    <div class="grid-container">
+        
+        {{-- SECTION 1: PERIODE AKADEMIK --}}
+        <div>
+            <h2 class="content-title" style="border-bottom: 2px solid #0a2e6c; padding-bottom: 10px;">1. Periode Akademik</h2>
+            
+            <div class="content-box" style="margin-bottom: 20px;">
+                <form action="{{ route('staff.periode.store') }}" method="POST">
+                    @csrf
+                    <div class="form-group">
+                        <label>Nama Semester</label>
+                        <input type="text" name="nama" class="form-input" placeholder="Cth: Semester Ganjil 2026/2027" required>
+                    </div>
+                    <div class="form-group" style="display:flex; gap:10px;">
+                        <div style="flex:1">
+                            <label>Mulai</label>
+                            <input type="date" name="tanggal_mulai" class="form-input" required>
+                        </div>
+                        <div style="flex:1">
+                            <label>Selesai</label>
+                            <input type="date" name="tanggal_selesai" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" name="is_active" id="active_akademik" value="1">
+                        <label for="active_akademik" style="display:inline; font-weight:normal;">Set Aktif</label>
+                    </div>
+                    <button type="submit" class="btn-submit btn-blue"><i class="fa fa-save"></i> Simpan Akademik</button>
+                </form>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div class="form-group">
-                    <label for="tanggal_mulai">Tanggal Mulai</label>
-                    <input type="date" name="tanggal_mulai" id="tanggal_mulai" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="tanggal_selesai">Tanggal Selesai</label>
-                    <input type="date" name="tanggal_selesai" id="tanggal_selesai" class="form-input" required>
-                </div>
+            {{-- TABEL AKADEMIK --}}
+            <div class="content-box">
+                <table class="table-wrapper">
+                    <thead><tr><th>Periode</th><th>Rentang</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <tbody>
+                        @foreach ($periodes as $p)
+                        @php $isExpired = $p->tanggal_selesai < now()->format('Y-m-d'); @endphp
+                        <tr>
+                            <td>{{ $p->nama }}</td>
+                            <td><small>{{ \Carbon\Carbon::parse($p->tanggal_mulai)->format('d/m/y') }} - {{ \Carbon\Carbon::parse($p->tanggal_selesai)->format('d/m/y') }}</small></td>
+                            <td>
+                                @if($p->is_active) <span class="badge badge-active">AKTIF</span>
+                                @elseif($isExpired) <span class="badge badge-expired">LEWAT</span>
+                                @else <span class="badge badge-inactive">NONAKTIF</span> @endif
+                            </td>
+                            <td>
+                                {{-- Tombol Toggle Aktif --}}
+                                @if(!$isExpired)
+                                    <form action="{{ route('staff.periode.activate', ['type'=>'akademik', 'id'=>$p->id]) }}" method="POST" style="display:inline;">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn-icon {{ $p->is_active ? 'text-success' : 'text-muted' }}" title="Klik untuk ubah status">
+                                            <i class="fa fa-power-off"></i>
+                                        </button>
+                                    </form>
+                                    
+                                    {{-- Tombol Hapus (Hanya jika belum mulai) --}}
+                                    @if($p->tanggal_mulai > now())
+                                        <form action="{{ route('staff.periode.destroy', ['type'=>'akademik', 'id'=>$p->id]) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus?');">
+                                            @csrf @method('DELETE')
+                                            <button class="btn-icon text-danger"><i class="fa fa-trash"></i></button>
+                                        </form>
+                                    @endif
+                                @else
+                                    <i class="fa fa-lock text-muted"></i>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- SECTION 2: PERIODE SIDANG --}}
+        <div>
+            <h2 class="content-title" style="border-bottom: 2px solid #16a085; padding-bottom: 10px;">2. Periode Sidang</h2>
+            
+            <div class="content-box" style="margin-bottom: 20px;">
+                <form action="{{ route('staff.periode.storeSidang') }}" method="POST">
+                    @csrf
+                    <div class="form-group">
+                        <label>Induk Semester</label>
+                        <select name="periode_id" class="form-select" required>
+                            @foreach($periodes as $p)
+                                @if($p->tanggal_selesai >= now()) {{-- Hanya tampilkan semester aktif/masa depan --}}
+                                    <option value="{{ $p->id }}">{{ $p->nama }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Gelombang</label>
+                        <input type="text" name="nama_event" class="form-input" placeholder="Cth: Gelombang 1 - Agustus" required>
+                    </div>
+                    <div class="form-group" style="display:flex; gap:10px;">
+                        <div style="flex:1">
+                            <label>Mulai</label>
+                            <input type="date" name="tanggal_mulai" class="form-input" required>
+                        </div>
+                        <div style="flex:1">
+                            <label>Selesai</label>
+                            <input type="date" name="tanggal_selesai" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" name="is_published" id="active_sidang" value="1">
+                        <label for="active_sidang" style="display:inline; font-weight:normal;">Buka Pendaftaran (Aktif)</label>
+                    </div>
+                    <button type="submit" class="btn-submit btn-green"><i class="fa fa-save"></i> Simpan Sidang</button>
+                </form>
             </div>
 
-            <div class="form-group">
-                <label>Status Aktif</label>
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" name="is_active" id="is_active" value="1">
-                    <label for="is_active" style="margin:0; font-weight: normal;">
-                        Set sebagai Periode Aktif
-                    </label>
-                </div>
-            </div>
+            {{-- TABEL SIDANG --}}
+            <div class="content-box">
+                <table class="table-wrapper">
+                    <thead><tr><th>Gelombang</th><th>Induk</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <tbody>
+                        @foreach ($events as $e)
+                        @php $isExpiredEvent = $e->tanggal_selesai < now()->format('Y-m-d'); @endphp
+                        <tr>
+                            <td>
+                                <strong>{{ $e->nama_event }}</strong><br>
+                                <small>{{ \Carbon\Carbon::parse($e->tanggal_mulai)->format('d/m') }} - {{ \Carbon\Carbon::parse($e->tanggal_selesai)->format('d/m/y') }}</small>
+                            </td>
+                            <td>{{ $e->periode->nama ?? '-' }}</td>
+                            <td>
+                                @if($e->is_published) <span class="badge badge-active">BUKA</span>
+                                @elseif($isExpiredEvent) <span class="badge badge-expired">TUTUP</span>
+                                @else <span class="badge badge-inactive">TUTUP</span> @endif
+                            </td>
+                            <td>
+                                {{-- Tombol Toggle --}}
+                                @if(!$isExpiredEvent)
+                                    <form action="{{ route('staff.periode.activate', ['type'=>'sidang', 'id'=>$e->id]) }}" method="POST" style="display:inline;">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn-icon {{ $e->is_published ? 'text-success' : 'text-muted' }}" title="Buka/Tutup Pendaftaran">
+                                            <i class="fa fa-toggle-{{ $e->is_published ? 'on' : 'off' }}"></i>
+                                        </button>
+                                    </form>
 
-            <button type="submit" class="btn-submit">
-                <i class="fa-solid fa-plus-circle"></i> Simpan Periode
-            </button>
-        </form>
+                                    @if($e->tanggal_mulai > now())
+                                        <form action="{{ route('staff.periode.destroy', ['type'=>'sidang', 'id'=>$e->id]) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus?');">
+                                            @csrf @method('DELETE')
+                                            <button class="btn-icon text-danger"><i class="fa fa-trash"></i></button>
+                                        </form>
+                                    @endif
+                                @else
+                                    <i class="fa fa-lock text-muted"></i>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
-
-    <h2 class="content-title" style="margin-top: 40px;">Daftar Periode Terdaftar</h2>
-    
-    <div class="content-box">
-        <table class="table-wrapper">
-            <thead>
-                <tr>
-                    <th>Nama Periode</th>
-                    <th>Rentang Tanggal</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($periodes as $periode)
-                    <tr>
-                        <td>{{ $periode->nama }}</td>
-                        <td>
-                            {{ \Carbon\Carbon::parse($periode->tanggal_mulai)->format('d M Y') }} 
-                            s/d 
-                            {{ \Carbon\Carbon::parse($periode->tanggal_selesai)->format('d M Y') }}
-                        </td>
-                        <td>
-                            @if($periode->is_active)
-                                <span class="badge badge-active">Aktif</span>
-                            @else
-                                <span class="badge badge-inactive">Tidak Aktif</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if ($periode->tanggal_mulai > now())
-                                <form action="{{ route('staff.periode.destroy', $periode->id) }}" method="POST" 
-                                      onsubmit="return confirm('Yakin ingin menghapus periode masa depan ini?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn-delete">
-                                        <i class="fa-solid fa-trash"></i> Hapus
-                                    </button>
-                                </form>
-                            @else
-                                <span class="status-locked">
-                                    <i class="fa-solid fa-lock"></i> Terkunci
-                                </span>
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-
 </x-staff-layout>
