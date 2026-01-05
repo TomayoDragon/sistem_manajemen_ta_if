@@ -295,6 +295,11 @@
                         <i class="fa-solid fa-desktop"></i> Monitoring Jadwal
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('staff.import_ta') }}" class="{{ request()->routeIs('staff.ta.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-user-plus"></i> Tambah Mahasiswa TA
+                    </a>
+                </li>
             </ul>
         </nav>
 

@@ -91,7 +91,7 @@
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Pembimbing 2:</span>
-                    <span class="detail-value">{{ $ta->dosenPembimbing2->nama_lengkap }}</span>
+                    <span class="detail-value">{{ $ta->dosenPembimbing2?->nama_lengkap ?? '-' }}</span>
                 </div>
             </div>
         </div>

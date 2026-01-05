@@ -4,21 +4,17 @@ namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\PengajuanSidang;
-use IlluminateS\upport\Facades\Request; // <-- Perhatikan, saya ganti Request
+use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB; 
 
 class ValidasiController extends Controller
 {
-    /**
-     * Menampilkan halaman detail "Review Paket Pengajuan".
-     */
     public function show($id)
     {
-        // Ambil data pengajuan DAN relasi 'dokumen' & 'tugasAkhir'
         $pengajuan = PengajuanSidang::with('tugasAkhir.mahasiswa', 'dokumen')
                         ->where('id', $id)
-                        ->where('status_validasi', 'PENDING')
                         ->firstOrFail(); 
 
         return view('staff.review', [
@@ -26,11 +22,7 @@ class ValidasiController extends Controller
         ]);
     }
 
-    /**
-     * Memproses keputusan validasi (Terima / Tolak).
-     * (INI ADALAH FUNGSI YANG DIPERBAIKI)
-     */
-    public function process(\Illuminate\Http\Request $request, $id) // <-- Perhatikan, saya tambahkan \Illuminate\Http\Request
+    public function process(Request $request, $id) 
     {
         // 1. Validasi input
         $request->validate([
@@ -38,35 +30,62 @@ class ValidasiController extends Controller
             'catatan_validasi' => 'required_if:keputusan,TOLAK|nullable|string|max:1000',
         ]);
 
-        // 2. Ambil data pengajuan (termasuk relasi TA)
-        $pengajuan = PengajuanSidang::with('tugasAkhir')->findOrFail($id);
+        $pengajuan = PengajuanSidang::with(['tugasAkhir', 'dokumen'])->findOrFail($id);
 
-        // 3. Update status pengajuan
-        $pengajuan->status_validasi = $request->input('keputusan');
-        $pengajuan->catatan_validasi = $request->input('catatan_validasi');
-        $pengajuan->validator_id = Auth::user()->staff_id;
-        $pengajuan->validated_at = now();
-        $pengajuan->save();
+        // =====================================================================
+        // SKENARIO A: JIKA DITOLAK -> HAPUS SEMUA DATA
+        // =====================================================================
+        if ($request->input('keputusan') == 'TOLAK') {
+            
+            DB::beginTransaction();
+            try {
+                foreach ($pengajuan->dokumen as $doc) {
+                    if ($doc->path_penyimpanan && Storage::exists($doc->path_penyimpanan)) {
+                        Storage::delete($doc->path_penyimpanan);
+                    }
+                }
+                $pengajuan->dokumen()->delete();
+                $pengajuan->delete();
 
-        // 4. --- LOGIKA BARU (Sesuai Permintaan Anda) ---
-        // Jika keputusannya 'TERIMA', update status utama di tabel Tugas Akhir
-        if ($request->input('keputusan') == 'TERIMA') {
-            
-            // Ambil relasi tugasAkhir
-            $tugasAkhir = $pengajuan->tugasAkhir; 
-            
-            // Update status utama
-            if ($tugasAkhir) {
-                $tugasAkhir->status = 'Menunggu Sidang'; // Status baru
-                $tugasAkhir->save();
+                DB::commit();
+
+                return redirect()->route('staff.dashboard')
+                    ->with('error', 'Pengajuan DITOLAK. Seluruh berkas telah dihapus.');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
             }
         }
-        // --- AKHIR LOGIKA BARU ---
 
-        // 5. Redirect kembali
-        $pesan = $request->input('keputusan') == 'TERIMA' ? 'disetujui' : 'ditolak';
-        
-        return redirect()->route('staff.dashboard')
-            ->with('success', 'Paket pengajuan berhasil ' . $pesan . '.');
+        // =====================================================================
+        // SKENARIO B: JIKA DITERIMA -> UPDATE STATUS
+        // =====================================================================
+        if ($request->input('keputusan') == 'TERIMA') {
+            
+            $pengajuan->status_validasi = 'TERIMA'; 
+            $pengajuan->catatan_validasi = $request->input('catatan_validasi');
+
+            // --- PERBAIKAN DISINI (SOLUSI ERROR FOREIGN KEY) ---
+            // Kita ambil Staff ID dari relasi User, bukan User ID langsung.
+            // Opsi 1: Jika User punya kolom staff_id (seperti kode lama Anda)
+            // $pengajuan->validator_id = Auth::user()->staff_id; 
+            
+            // Opsi 2: Jika menggunakan Relasi Eloquent (Lebih aman/umum)
+             $pengajuan->validator_id = Auth::user()->staff->id; 
+
+            $pengajuan->validated_at = now();
+            $pengajuan->save();
+
+            // Update Status Tugas Akhir
+            $tugasAkhir = $pengajuan->tugasAkhir; 
+            if ($tugasAkhir) {
+                $tugasAkhir->status = 'Menunggu Sidang'; 
+                $tugasAkhir->save();
+            }
+
+            return redirect()->route('staff.dashboard')
+                ->with('success', 'Paket pengajuan berhasil DISETUJUI.');
+        }
     }
 }

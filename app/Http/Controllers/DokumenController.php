@@ -30,6 +30,7 @@ class DokumenController extends Controller
     {
         // 1. --- LOGIKA KEAMANAN ---
         $user = Auth::user();
+        // Pastikan relasi 'pengajuanSidang' dan 'tugasAkhir' valid
         $taOwnerId = $dokumen->pengajuanSidang->tugasAkhir->mahasiswa_id;
 
         $isAuthorized = false;
@@ -50,22 +51,23 @@ class DokumenController extends Controller
             return redirect()->back()->with('error', 'File tidak ditemukan di server.');
         }
 
+        // Ambil Absolute Path (Path lengkap di server)
+        $absolutePath = Storage::path($path);
+
         // 3. --- VIEW vs DOWNLOAD ---
         if ($request->query('mode') === 'view') {
-            // Asumsi file ada di storage/app/private atau root storage default
-            // Kita gunakan Storage::path() untuk mendapatkan absolute path yang aman
-            return response()->file(Storage::path($path));
+            return response()->file($absolutePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $dokumen->nama_file_asli . '"'
+            ]);
         }
 
-        return Storage::download($path, $dokumen->nama_file_asli);
+        // FIX: Gunakan response()->download() alih-alih Storage::download()
+        return response()->download($absolutePath, $dokumen->nama_file_asli);
     }
 
     /**
      * [UPDATED] Download Hasil Sidang (Lembar Revisi & Berita Acara)
-     * Sekarang mendukung mode preview di tab baru.
-     */
-    /**
-     * Download atau Preview Hasil Sidang
      */
     public function downloadHasilSidang(Request $request, $sidangId, $jenis)
     {
@@ -115,36 +117,50 @@ class DokumenController extends Controller
         // 3. Generate atau Ambil Dokumen via Helper
         $dokumen = null;
         if ($jenis === 'revisi') {
-            $dokumen = $this->docHelper->getOrGenerateRevisi($sidang);
+            $dokumen = $this->docHelper->generateRevisi($sidang);
         } elseif ($jenis === 'berita-acara') {
             if (!$sidang->beritaAcara) {
-                return back()->with('error', 'Berita Acara belum diterbitkan.');
+                // Opsional: Jika belum ada, coba generate on-the-fly
+                $this->docHelper->getOrGenerateBeritaAcara($sidang);
+                $sidang->refresh();
+            }
+            // Cek lagi setelah refresh
+            if (!$sidang->beritaAcara) {
+                 return back()->with('error', 'Berita Acara belum diterbitkan.');
             }
             $dokumen = $this->docHelper->getOrGenerateBeritaAcara($sidang);
         } else {
-            abort(404);
+            abort(404, 'Jenis dokumen tidak dikenal.');
         }
 
-        // 4. Pastikan File Fisik Ada
-        if (!Storage::exists($dokumen->path_file)) {
-            abort(404, 'File fisik dokumen tidak ditemukan di server.');
+        // 4. Pastikan File Fisik Ada (Gunakan Disk Public!)
+        if (!Storage::disk('public')->exists($dokumen->path_file)) {
+            // Coba generate ulang paksa (Anti-404 mechanism)
+            if ($jenis === 'revisi') {
+                $this->docHelper->generateRevisi($sidang);
+            } elseif ($jenis === 'berita-acara') {
+                $this->docHelper->getOrGenerateBeritaAcara($sidang);
+            }
+            
+            // Cek lagi
+            if (!Storage::disk('public')->exists($dokumen->path_file)) {
+                 abort(404, 'File fisik dokumen tidak ditemukan di server.');
+            }
         }
 
-        // --- INI BAGIAN KUNCI AGAR TIDAK LANGSUNG DOWNLOAD ---
+        // --- AMBIL FULL PATH DARI DISK PUBLIC ---
+        $absolutePath = Storage::disk('public')->path($dokumen->path_file);
 
-        // Jika di URL ada ?mode=view
+        // 5. Response View atau Download
         if ($request->query('mode') === 'view') {
-            // Ambil path lengkap (Absolute Path)
-            $absolutePath = Storage::path($dokumen->path_file);
-
-            // Return sebagai file inline (Browser akan membukanya)
             return response()->file($absolutePath, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="' . $dokumen->nama_file_asli . '"'
             ]);
         }
 
-        // Default: Download Paksa (Attachment)
-        return Storage::download($dokumen->path_file, $dokumen->nama_file_asli);
+        // FIX: Gunakan response()->download() dengan Absolute Path
+        // Ini menghindari error "Call to unknown method ::download()"
+        return response()->download($absolutePath, $dokumen->nama_file_asli);
     }
 }

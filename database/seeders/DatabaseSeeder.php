@@ -4,133 +4,98 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Dosen;
+use App\Models\Mahasiswa;
 use App\Models\TugasAkhir;
-use App\Models\Staff;      // <-- Import Staff
-use App\Models\Admin;      // <-- Import Admin
-use App\Models\Periode;    // <-- Import Periode (BARU)
+use App\Models\Staff;
+use App\Models\Admin;
+use App\Models\Periode;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         // ==========================================================
-        // LANGKAH 0: JALANKAN SEEDER MASTER (PERIODE & EVENT)
+        // 0. SETUP PERIODE
         // ==========================================================
-        $this->call([
-            PeriodeSeeder::class,
-            EventSidangSeeder::class,
+        $activePeriode = Periode::firstOrCreate(
+            ['nama' => 'Semester Ganjil 2025/2026'], 
+            [
+                'tanggal_mulai' => '2025-08-01',
+                'tanggal_selesai' => '2026-01-31',
+                'is_active' => true,
+            ]
+        );
+
+        // ==========================================================
+        // 1. DATA UTAMA (Manual & Pasti Benar)
+        // ==========================================================
+        
+        // --- Dosen ---
+        $dosen_joko = Dosen::create(['npk' => '12345678', 'nama_lengkap' => 'Dr. Joko Siswantoro', 'gelar_depan' => 'Dr.']);
+        User::create(['login_id' => $dosen_joko->npk, 'email' => 'joko@ubaya.ac.id', 'password' => Hash::make('password123'), 'dosen_id' => $dosen_joko->id]);
+
+        $dosen_ahmad = Dosen::create(['npk' => '11223344', 'nama_lengkap' => 'Ahmad Miftah Fajrin', 'gelar_belakang' => 'M.Kom.']);
+        User::create(['login_id' => $dosen_ahmad->npk, 'email' => 'ahmad@ubaya.ac.id', 'password' => Hash::make('password123'), 'dosen_id' => $dosen_ahmad->id]);
+
+        // --- Mahasiswa ---
+        $mhs_james = Mahasiswa::create(['nrp' => '160422100', 'nama_lengkap' => 'James Dharmawan']);
+        User::create(['login_id' => $mhs_james->nrp, 'email' => '160422100@student.ubaya.ac.id', 'password' => Hash::make('password123'), 'mahasiswa_id' => $mhs_james->id]);
+
+        $mhs_budi = Mahasiswa::create(['nrp' => '160422001', 'nama_lengkap' => 'Budi Santoso']);
+        User::create(['login_id' => $mhs_budi->nrp, 'email' => 'budi@student.ubaya.ac.id', 'password' => Hash::make('password123'), 'mahasiswa_id' => $mhs_budi->id]);
+
+        // --- Staff & Admin ---
+        $staff = Staff::create(['npk' => '87654321', 'nama_lengkap' => 'Duladi']);
+        User::create(['login_id' => $staff->npk, 'email' => 'duladi@ubaya.ac.id', 'password' => Hash::make('password123'), 'staff_id' => $staff->id]);
+
+        $admin = Admin::create(['username' => 'admin', 'nama_lengkap' => 'Super Admin']);
+        User::create(['login_id' => $admin->username, 'email' => 'admin@sistem.id', 'password' => Hash::make('admin123'), 'admin_id' => $admin->id]);
+
+        // --- Tugas Akhir ---
+        TugasAkhir::create([
+            'mahasiswa_id' => $mhs_james->id, 'periode_id' => $activePeriode->id, 'judul' => 'Sistem Digital Signature',
+            'dosen_pembimbing_1_id' => $dosen_joko->id, 'dosen_pembimbing_2_id' => $dosen_ahmad->id, 
+            'status' => 'Bimbingan' // STATUS VALID
         ]);
 
-        // 2. Ambil Periode Aktif (2025/2026 Ganjil)
-        $activePeriode = Periode::where('is_active', true)->first();
+        TugasAkhir::create([
+            'mahasiswa_id' => $mhs_budi->id, 'periode_id' => $activePeriode->id, 'judul' => 'Analisis Algoritma',
+            'dosen_pembimbing_1_id' => $dosen_joko->id, 'dosen_pembimbing_2_id' => null, 
+            'status' => 'Bimbingan' // STATUS VALID
+        ]);
 
-        // Fallback jika seeder periode belum diset
-        if (!$activePeriode) {
-            $activePeriode = Periode::firstOrCreate([
-                'nama' => 'Semester Ganjil 2025/2026',
-                'tahun_akademik' => '2025/2026',
-                'semester' => 'GANJIL',
-                'is_active' => true,
-            ]);
+
+        // ==========================================================
+        // 2. DATA DUMMY TAMBAHAN
+        // ==========================================================
+
+        // --- 15 Dosen Dummy ---
+        for ($i = 1; $i <= 15; $i++) {
+            $npkDummy = '99900' . str_pad($i, 2, '0', STR_PAD_LEFT);
+            $dosen = Dosen::create(['npk' => $npkDummy, 'nama_lengkap' => 'Dosen Dummy ' . $i]);
+            User::create(['login_id' => $npkDummy, 'email' => 'dosen' . $i . '@dummy.com', 'password' => Hash::make('password'), 'dosen_id' => $dosen->id]);
         }
 
-        // ==========================================================
-        // LANGKAH 1: BUAT SEMUA DOSEN TERLEBIH DAHULU
-        // ==========================================================
+        // --- 20 Mahasiswa Dummy ---
+        for ($i = 1; $i <= 20; $i++) {
+            $nrpDummy = '160499' . str_pad($i, 3, '0', STR_PAD_LEFT);
+            
+            $mhs = Mahasiswa::create(['nrp' => $nrpDummy, 'nama_lengkap' => 'Mahasiswa Dummy ' . $i]);
+            User::create(['login_id' => $nrpDummy, 'email' => $nrpDummy . '@student.dummy.com', 'password' => Hash::make('password'), 'mahasiswa_id' => $mhs->id]);
 
-        // Buat Dosen Joko (Dosbing 1 James)
-        $dosen_joko = Dosen::factory()->create([
-            'npk' => '12345678',
-            'nama_lengkap' => 'Dr. Joko Siswantoro',
-        ]);
-        User::factory()->create([
-            'dosen_id' => $dosen_joko->id,
-            'login_id' => $dosen_joko->npk,
-            'email' => 'joko@ubaya.ac.id',
-            'password' => Hash::make('password123'), // Ganti password agar tidak sama
-        ]);
+            // Buat TA
+            $hasDosbing2 = ($i % 2 == 0); 
 
-        // Buat Dosen Ahmad (Dosbing 2 James)
-        $dosen_ahmad = Dosen::factory()->create([
-            'npk' => '11223344',
-            'nama_lengkap' => 'Ahmad Miftah Fajrin, M.Kom.',
-        ]);
-        User::factory()->create([
-            'dosen_id' => $dosen_ahmad->id,
-            'login_id' => $dosen_ahmad->npk,
-            'email' => 'ahmad@ubaya.ac.id',
-            'password' => Hash::make('password123'), // Ganti password agar tidak sama
-        ]);
-
-        // Buat 2 user dosen random (agar ada total 4 dosen di DB)
-        User::factory(5)->dosen()->create();
-
-
-        // ==========================================================
-        // LANGKAH 2: BUAT MAHASISWA & ROLE LAIN
-        // ==========================================================
-
-        // Buat Mahasiswa James
-        $mhs_james = \App\Models\Mahasiswa::factory()->create([
-            'nrp' => '160422100',
-            'nama_lengkap' => 'James Dharmawan',
-        ]);
-        User::factory()->create([
-            'mahasiswa_id' => $mhs_james->id,
-            'login_id' => $mhs_james->nrp,
-            'email' => '160422100@student.ubaya.ac.id', // Sesuaikan dengan NRP
-            'password' => Hash::make('password123'),
-        ]);
-
-        // Buat Staff Duladi
-        $staff_duladi = Staff::factory()->create([
-            'npk' => '87654321',
-            'nama_lengkap' => 'Duladi',
-        ]);
-        User::factory()->create([
-            'staff_id' => $staff_duladi->id,
-            'login_id' => $staff_duladi->npk,
-            'email' => 'duladi@ubaya.ac.id',
-            'password' => Hash::make('password123'), // Ganti password
-        ]);
-
-        // Buat Admin
-        $admin_super = Admin::factory()->create([
-            'username' => 'admin',
-            'nama_lengkap' => 'Super Admin',
-        ]);
-        User::factory()->create([
-            'admin_id' => $admin_super->id,
-            'login_id' => $admin_super->username,
-            'email' => 'admin@sistem.id',
-            'password' => Hash::make('admin123'),
-        ]);
-
-
-        // ==========================================================
-        // LANGKAH 3: BUAT DATA TUGAS AKHIR
-        // ==========================================================
-
-        // Buat TA spesifik untuk James (Hubungkan ke Periode Aktif)
-        TugasAkhir::factory()->create([
-            'mahasiswa_id' => $mhs_james->id,
-            'periode_id' => $activePeriode->id, // <--- PENTING!
-            'judul' => 'Pembuatan Sistem Manajemen Berkas Tugas Akhir Dengan Digital Signature',
-            'dosen_pembimbing_1_id' => $dosen_joko->id,
-            'dosen_pembimbing_2_id' => $dosen_ahmad->id,
-            'status' => 'Bimbingan',
-            'dosbing_1_approved_at' => now(),
-            'dosbing_2_approved_at' => now(),
-        ]);
-        // Buat 5 user mhs DENGAN TA (Hubungkan ke Periode Aktif)
-        User::factory(5)->mahasiswa()->withTugasAkhir($activePeriode->id)->create(); // <-- PERUBAHAN DI SINI
-
-        // Buat 5 user mhs TANPA TA
-        User::factory(5)->mahasiswa()->create();
+            TugasAkhir::create([
+                'mahasiswa_id' => $mhs->id,
+                'periode_id' => $activePeriode->id,
+                'judul' => 'Judul Skripsi Dummy Nomor ' . $i,
+                'dosen_pembimbing_1_id' => $dosen_joko->id, 
+                'dosen_pembimbing_2_id' => $hasDosbing2 ? $dosen_ahmad->id : null,
+                'status' => 'Bimbingan', 
+            ]);
+        }
     }
 }

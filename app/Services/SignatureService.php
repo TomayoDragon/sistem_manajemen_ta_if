@@ -13,7 +13,7 @@ class SignatureService
     // 1. MANAJEMEN KUNCI (OTOMATIS)
     // =================================================================
 
-    public function generateAndStoreKeys(Mahasiswa $mahasiswa)
+  public function generateAndStoreKeys(Mahasiswa $mahasiswa)
     {
         $keyPair = sodium_crypto_sign_keypair();
         $publicKey = sodium_crypto_sign_publickey($keyPair);
@@ -21,10 +21,11 @@ class SignatureService
 
         $encryptedPrivateKey = Crypt::encryptString(base64_encode($privateKey));
 
-        $mahasiswa->updateQuietly([
+        // PERBAIKAN: Gunakan forceFill agar tersimpan meski tidak ada di $fillable
+        $mahasiswa->forceFill([
             'public_key' => base64_encode($publicKey),
             'private_key_encrypted' => $encryptedPrivateKey
-        ]);
+        ])->saveQuietly();
         
         sodium_memzero($privateKey);
         sodium_memzero($keyPair);
@@ -42,12 +43,12 @@ class SignatureService
         return ''; // Helper (tidak dipakai di logika per-file ini)
     }
 
-    public function performCustomHash(string $content): array
+   public function performCustomHash(string $content): array
     {
         // 1. Hash SHA-512
         $sha512_full_raw = hash('sha512', $content, true);
         
-        // 2. Hash BLAKE2b (Menggunakan Sodium)
+        // 2. Hash BLAKE2b
         $blake2b_full_raw = sodium_crypto_generichash($content, '', 64); 
 
         // 3. Gabungkan 32 byte pertama
@@ -69,14 +70,19 @@ class SignatureService
 
     public function performRealEdDSASigning(string $combinedHashRaw, Mahasiswa $mahasiswa): string
     {
+        // Pastikan ambil data terbaru jika baru saja digenerate
+        if (empty($mahasiswa->private_key_encrypted)) {
+             $mahasiswa->refresh();
+        }
+
         $encryptedPrivateKey = $mahasiswa->private_key_encrypted;
+        
         if (!$encryptedPrivateKey) {
-            throw new \Exception("Mahasiswa ini tidak memiliki private key.");
+            throw new \Exception("Mahasiswa ini tidak memiliki private key (Gagal Generate).");
         }
 
         $privateKey = base64_decode(Crypt::decryptString($encryptedPrivateKey));
         
-        // Signing menggunakan Ed25519 (Sodium)
         $signature = sodium_crypto_sign_detached($combinedHashRaw, $privateKey);
         
         sodium_memzero($privateKey);

@@ -77,24 +77,12 @@
             color: #c0392b;
         }
 
-        .status-wait-schedule {
-            border-color: #3498db;
-            background-color: #f0f9ff;
-        }
-
-        .status-wait-schedule .icon {
-            color: #3498db;
-        }
-
-        .status-wait-schedule h3 {
-            color: #2980b9;
-        }
-
         /* --- STYLE BARU UNTUK HASIL BA --- */
         .hasil-ba-box {
             padding: 30px;
             border-radius: 8px;
             text-align: center;
+            margin-top: 20px;
         }
 
         .hasil-ba-box .icon {
@@ -170,7 +158,7 @@
             color: #c0392b;
         }
 
-        /* Container untuk tombol action agar rapi berdampingan */
+        /* Container untuk tombol action */
         .action-buttons {
             display: flex;
             justify-content: center;
@@ -203,8 +191,16 @@
             background-color: #0a2e6c;
         }
 
+        .btn-blue:hover {
+            background-color: #082456;
+        }
+
         .btn-orange {
             background-color: #d35400;
+        }
+
+        .btn-orange:hover {
+            background-color: #b04600;
         }
     </style>
 
@@ -289,21 +285,24 @@
                                 </div>
                             </div>
                         @else
-                            <p style="color: red;">Error: Data Berita Acara tidak ditemukan.</p>
+                            <p style="color: red;">Error: Data Berita Acara belum digenerate oleh sistem.</p>
                         @endif
 
                         <div class="action-buttons">
-                            {{-- TOMBOL LIHAT REVISI --}}
+
+                            {{-- TOMBOL DOWNLOAD REVISI (GABUNGAN) --}}
+                            {{-- Mengarah ke SidangController@downloadRevisi --}}
                             <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi', 'mode' => 'view']) }}"
                                 target="_blank" class="btn-custom btn-orange">
-                                <i class="fa-solid fa-eye"></i>
-                                Lihat Revisi
+                                <i class="fa-solid fa-file-pdf"></i>
+                                Lihat Form Revisi 
                             </a>
-
                             {{-- TOMBOL LIHAT BERITA ACARA --}}
+                            {{-- Menggunakan route download/view standar untuk Berita Acara --}}
+                            {{-- Pastikan route ini ada, atau sesuaikan dengan route yang Anda miliki --}}
                             <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara', 'mode' => 'view']) }}"
                                 target="_blank" class="btn-custom btn-blue">
-                                <i class="fa-solid fa-file-pdf"></i>
+                                <i class="fa-solid fa-certificate"></i>
                                 Lihat Berita Acara
                             </a>
                         </div>
@@ -347,7 +346,7 @@
         <div class="content-box">
             <div class="status-message-box status-reject">
                 <i class="fa-solid fa-circle-xmark icon"></i>
-                <h3>Berkas Belum Disetujui</h3>
+                <h3>Berkas Belum Disetujui / Belum Upload</h3>
                 <p>
                     Anda harus mengupload paket berkas sidang dan menunggu persetujuan
                     <br>

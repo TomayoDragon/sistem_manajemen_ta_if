@@ -7,72 +7,52 @@ use Illuminate\Http\Request;
 use App\Models\Lsta;
 use App\Models\Sidang;
 use App\Models\LembarPenilaian;
+use App\Models\BeritaAcara;
 use Illuminate\Support\Facades\Auth;
-use App\Services\BeritaAcaraService;
+use App\Services\DokumenSystemHelper;
 
 class PenilaianController extends Controller
 {
-    /**
-     * Menampilkan form lembar penilaian.
-     */
     public function show($type, $id)
     {
         $dosenId = Auth::user()->dosen_id;
         $event = null;
         $modelClass = null;
 
-        // 1. Load Event & Relasi
+        // 1. Load Data
         if ($type === 'lsta') {
             $modelClass = Lsta::class;
-            $event = Lsta::with([
-                'tugasAkhir.mahasiswa', 
-                'pengajuanSidang.dokumen',
-                'tugasAkhir' // Load TA untuk cek pembimbing
-            ])->findOrFail($id);
+            $event = Lsta::with(['tugasAkhir', 'pengajuanSidang.dokumen'])->findOrFail($id);
         } elseif ($type === 'sidang') {
             $modelClass = Sidang::class;
-            $event = Sidang::with([
-                'tugasAkhir.mahasiswa', 
-                'pengajuanSidang.dokumen',
-                'tugasAkhir' // Load TA untuk cek pembimbing
-            ])->findOrFail($id);
+            $event = Sidang::with(['tugasAkhir', 'pengajuanSidang.dokumen', 'lembarPenilaians'])->findOrFail($id);
         } else {
             abort(404);
         }
 
-        // 2. --- LOGIKA KEAMANAN (BARU) ---
-        // Cek apakah dosen yang login berhak melihat halaman ini
+        // --- [FIX 1] KUNCI FORM & REDIRECT JIKA SELESAI ---
+        // Jika Berita Acara sudah terbit (Status LULUS/TIDAK), tendang ke dashboard.
+        if (in_array($event->status, ['LULUS', 'TIDAK_LULUS'])) {
+            return redirect()->route('dosen.dashboard')
+                ->with('error', 'Sidang ini telah selesai. Penilaian sudah ditutup.');
+        }
+
+        // 2. Validasi Akses
         $isAuthorized = false;
         $ta = $event->tugasAkhir;
 
-        // Cek Pembimbing (Berlaku untuk LSTA & Sidang)
-        if ($ta->dosen_pembimbing_1_id == $dosenId || $ta->dosen_pembimbing_2_id == $dosenId) {
-            $isAuthorized = true;
-        }
+        if ($ta->dosen_pembimbing_1_id == $dosenId) $isAuthorized = true;
+        if ($ta->dosen_pembimbing_2_id && $ta->dosen_pembimbing_2_id == $dosenId) $isAuthorized = true;
+        if ($type === 'lsta' && $event->dosen_penguji_id == $dosenId) $isAuthorized = true;
+        if ($type === 'sidang' && ($event->dosen_penguji_ketua_id == $dosenId || $event->dosen_penguji_sekretaris_id == $dosenId)) $isAuthorized = true;
 
-        // Cek Penguji (Spesifik per tipe)
-        if ($type === 'lsta') {
-            if ($event->dosen_penguji_id == $dosenId) {
-                $isAuthorized = true;
-            }
-        } elseif ($type === 'sidang') {
-            if ($event->dosen_penguji_ketua_id == $dosenId || $event->dosen_penguji_sekretaris_id == $dosenId) {
-                $isAuthorized = true;
-            }
-        }
+        if (!$isAuthorized) abort(403, 'AKSES DITOLAK.');
 
-        // Jika tidak punya hak akses, tolak!
-        if (!$isAuthorized) {
-            abort(403, 'AKSES DITOLAK. Anda bukan Dosen Pembimbing atau Penguji untuk jadwal ini.');
-        }
-        // --- AKHIR LOGIKA KEAMANAN ---
-
-
-        // 3. Ambil Nilai yang Sudah Ada (Jika ada)
+        // 3. Ambil Nilai Lama
         $existingScore = LembarPenilaian::where('dosen_id', $dosenId)
-                            ->where('penilaian_type', $modelClass)
-                            ->where('penilaian_id', $event->id)
-                            ->first();
+                                        ->where('penilaian_type', $modelClass)
+                                        ->where('penilaian_id', $event->id)
+                                        ->first();
 
         return view('dosen.penilaian', [
             'event' => $event,
@@ -81,10 +61,7 @@ class PenilaianController extends Controller
         ]);
     }
 
-    /**
-     * Menyimpan nilai DAN MENTRIGGER FINALISASI OTOMATIS.
-     */
-    public function store(Request $request, $type, $id, BeritaAcaraService $baService)
+    public function store(Request $request, $type, $id)
     {
         $dosenId = Auth::user()->dosen_id;
         $event = null;
@@ -93,83 +70,101 @@ class PenilaianController extends Controller
         if ($type === 'lsta') {
             $modelClass = Lsta::class;
             $event = Lsta::findOrFail($id);
-            
-            // Validasi Khusus LSTA: Hanya Penguji yang boleh menilai
-            if ($event->dosen_penguji_id !== $dosenId) {
-                return redirect()->back()->with('error', 'Hanya Dosen Penguji yang berhak mengisi nilai LSTA.');
-            }
-            
+            if ($event->dosen_penguji_id !== $dosenId) return back()->with('error', 'Hanya Penguji LSTA.');
         } elseif ($type === 'sidang') {
             $modelClass = Sidang::class;
             $event = Sidang::findOrFail($id);
-
-            // Validasi Khusus Sidang: Hanya 4 orang yang boleh menilai
-            $ta = $event->tugasAkhir;
-            $allowedDosen = [
-                $ta->dosen_pembimbing_1_id,
-                $ta->dosen_pembimbing_2_id,
-                $event->dosen_penguji_ketua_id,
-                $event->dosen_penguji_sekretaris_id
-            ];
-
-            if (!in_array($dosenId, $allowedDosen)) {
-                 abort(403, 'Anda tidak terdaftar sebagai penilai sidang ini.');
+            
+            // Cek Status Lagi
+            if (in_array($event->status, ['LULUS', 'TIDAK_LULUS'])) {
+                return redirect()->route('dosen.dashboard')->with('error', 'Sidang selesai, terkunci.');
             }
+
+            $ta = $event->tugasAkhir;
+            $allowed = [$ta->dosen_pembimbing_1_id, $event->dosen_penguji_ketua_id, $event->dosen_penguji_sekretaris_id];
+            if ($ta->dosen_pembimbing_2_id) $allowed[] = $ta->dosen_pembimbing_2_id;
+
+            if (!in_array($dosenId, $allowed)) abort(403, 'Invalid Penilai.');
         } else {
             abort(404);
         }
 
         $request->validate([
-            'nilai_materi' => 'required|integer|min:0|max:100',
-            'nilai_sistematika' => 'required|integer|min:0|max:100',
-            'nilai_mempertahankan' => 'required|integer|min:0|max:100',
-            'nilai_pengetahuan_bidang' => 'required|integer|min:0|max:100',
-            'nilai_karya_ilmiah' => 'required|integer|min:0|max:100',
-            'komentar_revisi' => 'nullable|string|max:2000',
+            'nilai_materi' => 'required|numeric|min:0|max:100',
+            'nilai_sistematika' => 'required|numeric|min:0|max:100',
+            'nilai_mempertahankan' => 'required|numeric|min:0|max:100',
+            'nilai_pengetahuan_bidang' => 'required|numeric|min:0|max:100',
+            'nilai_karya_ilmiah' => 'required|numeric|min:0|max:100',
+            'komentar_revisi' => 'nullable|string|max:5000',
         ]);
 
         // Simpan Nilai
-        $lembar = LembarPenilaian::updateOrCreate(
+        LembarPenilaian::updateOrCreate(
+            ['dosen_id' => $dosenId, 'penilaian_type' => $modelClass, 'penilaian_id' => $id],
             [
-                'dosen_id' => $dosenId,
-                'penilaian_type' => $modelClass,
-                'penilaian_id' => $id,
-            ],
-            [
-                'nilai_materi' => $request->input('nilai_materi'),
-                'nilai_sistematika' => $request->input('nilai_sistematika'),
-                'nilai_mempertahankan' => $request->input('nilai_mempertahankan'),
-                'nilai_pengetahuan_bidang' => $request->input('nilai_pengetahuan_bidang'),
-                'nilai_karya_ilmiah' => $request->input('nilai_karya_ilmiah'),
-                'komentar_revisi' => $request->input('komentar_revisi'),
+                'nilai_materi' => $request->nilai_materi,
+                'nilai_sistematika' => $request->nilai_sistematika,
+                'nilai_mempertahankan' => $request->nilai_mempertahankan,
+                'nilai_pengetahuan_bidang' => $request->nilai_pengetahuan_bidang,
+                'nilai_karya_ilmiah' => $request->nilai_karya_ilmiah,
+                'komentar_revisi' => $request->komentar_revisi, 
             ]
         );
 
-        // Cek Trigger Selesai
-        $event->load('lembarPenilaians');
-        $jumlahNilaiMasuk = $event->lembarPenilaians->count();
-
+        // Finalisasi
         if ($type === 'lsta') {
-            // LSTA Selesai jika 1 Dosen (Penguji) sudah menilai
-            if ($jumlahNilaiMasuk >= 1) { 
-                $nilaiAkhir = ($lembar->nilai_materi * 0.15) + 
-                              ($lembar->nilai_sistematika * 0.10) + 
-                              ($lembar->nilai_mempertahankan * 0.50) + 
-                              ($lembar->nilai_pengetahuan_bidang * 0.15) + 
-                              ($lembar->nilai_karya_ilmiah * 0.10);
+            $total = ($request->nilai_materi * 0.15) + ($request->nilai_sistematika * 0.10) + 
+                     ($request->nilai_mempertahankan * 0.50) + ($request->nilai_pengetahuan_bidang * 0.15) + 
+                     ($request->nilai_karya_ilmiah * 0.10);
+            $event->status = ($total < 55) ? 'TIDAK_LULUS' : 'LULUS';
+            $event->save();
+        } 
+        elseif ($type === 'sidang') {
+            $target = $event->tugasAkhir->dosen_pembimbing_2_id ? 4 : 3;
+            if ($event->lembarPenilaians()->count() >= $target) {
+                
+                $semua = $event->lembarPenilaians()->get();
+                $totalSemua = 0;
+                foreach ($semua as $l) {
+                    $totalSemua += ($l->nilai_materi * 0.15) + ($l->nilai_sistematika * 0.10) + 
+                                   ($l->nilai_mempertahankan * 0.50) + ($l->nilai_pengetahuan_bidang * 0.15) + 
+                                   ($l->nilai_karya_ilmiah * 0.10);
+                }
+                $nilaiAkhir = $totalSemua / $target;
+                $status = ($nilaiAkhir >= 56) ? 'LULUS' : 'TIDAK_LULUS';
+                
+                $huruf = 'E';
+                if ($nilaiAkhir >= 81) $huruf = 'A';
+                elseif ($nilaiAkhir >= 76) $huruf = 'AB';
+                elseif ($nilaiAkhir >= 66) $huruf = 'B';
+                elseif ($nilaiAkhir >= 61) $huruf = 'BC';
+                elseif ($nilaiAkhir >= 56) $huruf = 'C';
+                elseif ($nilaiAkhir >= 41) $huruf = 'D';
 
-                $event->status = ($nilaiAkhir < 55) ? 'TIDAK_LULUS' : 'LULUS';
-                $event->save();
-            }
-        
-        } elseif ($type === 'sidang') {
-            // SIDANG: Butuh 4 Penilai
-            if ($jumlahNilaiMasuk == 4) {
-                $baService->generate($event);
+                $event->update(['status' => $status, 'nilai_akhir' => $nilaiAkhir]);
+
+                BeritaAcara::updateOrCreate(
+                    ['sidang_id' => $event->id],
+                    [
+                        'jumlah_nilai_mentah_nma' => $totalSemua,
+                        'rata_rata_nma' => $nilaiAkhir,
+                        'nilai_relatif_nr' => $huruf,
+                        'status' => $status,
+                        'hasil_ujian' => $status,
+                        'catatan' => 'Finalized System',
+                    ]
+                );
+
+                try {
+                    $helper = app(DokumenSystemHelper::class);
+                    $helper->generateRevisi($event);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("PDF Error: " . $e->getMessage());
+                }
             }
         }
-        
-        return redirect()->route('dosen.dashboard')
-            ->with('success', 'Lembar penilaian berhasil disimpan.');
+
+        // --- [FIX 2] REDIRECT KE DASHBOARD ---
+        return redirect()->route('dosen.dashboard')->with('success', 'Nilai tersimpan.');
     }
 }

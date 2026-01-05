@@ -35,19 +35,7 @@
             text-align: center;
         }
 
-        .btn-integritas {
-            padding: 5px 12px;
-            font-size: 0.9rem;
-            text-decoration: none;
-            color: #0a2e6c;
-            background-color: #eef5ff;
-            border: 1px solid #0a2e6c;
-            border-radius: 5px;
-            cursor: pointer;
-            display: block;
-            text-align: center;
-            margin-top: 5px;
-        }
+        /* Style btn-integritas dihapus atau dibiarkan tidak masalah karena tidak dipakai lagi */
     </style>
 
     @if (session('success'))
@@ -76,7 +64,6 @@
                         <td>{{ \Carbon\Carbon::parse($lsta->jadwal)->format('d M Y, H:i') }}</td>
                         <td>{{ $lsta->ruangan }}</td>
                         <td style="width: 25%;">
-
                             @if($lsta->dosen_penguji_id == Auth::user()->dosen_id)
                                 <a href="{{ route('dosen.penilaian.show', ['type' => 'lsta', 'id' => $lsta->id]) }}"
                                     class="btn-penilaian">
@@ -87,13 +74,7 @@
                                     (Pembimbing)
                                 </span>
                             @endif
-                            @if($lsta->pengajuanSidang)
-                                @foreach($lsta->pengajuanSidang->dokumen as $dokumen)
-                                    <a href="{{ route('integritas.show', $dokumen->id) }}" class="btn-integritas" target="_blank">
-                                        <i class="fa-solid fa-shield-halved"></i> Cek {{ $dokumen->tipe_dokumen }}
-                                    </a>
-                                @endforeach
-                            @endif
+                            {{-- Dokumen link dihapus --}}
                         </td>
                     </tr>
                 @empty
@@ -103,7 +84,6 @@
                     </tr>
                 @endforelse
             </tbody>
-
         </table>
     </div>
 
@@ -126,24 +106,17 @@
                         <td>{{ \Illuminate\Support\Str::limit($sidang->tugasAkhir->judul, 40) }}</td>
                         <td>{{ \Carbon\Carbon::parse($sidang->jadwal)->format('d M Y, H:i') }}</td>
                         <td>{{ $sidang->ruangan }}</td>
-                        <td style="width: 25%;"> <a
-                                href="{{ route('dosen.penilaian.show', ['type' => 'sidang', 'id' => $sidang->id]) }}"
+                        <td style="width: 25%;"> 
+                            <a href="{{ route('dosen.penilaian.show', ['type' => 'sidang', 'id' => $sidang->id]) }}"
                                 class="btn-penilaian">
                                 <i class="fa-solid fa-file-pen"></i> Beri Nilai
                             </a>
-                            @if($sidang->pengajuanSidang)
-                                @foreach($sidang->pengajuanSidang->dokumen as $dokumen)
-                                    <a href="{{ route('integritas.show', $dokumen->id) }}" class="btn-integritas" target="_blank">
-                                        <i class="fa-solid fa-shield-halved"></i> Cek {{ $dokumen->tipe_dokumen }}
-                                    </a>
-                                @endforeach
-                            @endif
+                            {{-- Dokumen link dihapus --}}
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" style="text-align: center; color: #777;">Anda tidak memiliki jadwal menguji Sidang
-                            TA.</td>
+                        <td colspan="5" style="text-align: center; color: #777;">Anda tidak memiliki jadwal menguji Sidang TA.</td>
                     </tr>
                 @endforelse
             </tbody>

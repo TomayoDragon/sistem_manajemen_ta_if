@@ -23,12 +23,10 @@
             font-weight: 700;
         }
 
-        /* Style ini akan kita gunakan untuk Hash DAN Signature */
         .crypto-cell {
             font-family: monospace;
             font-size: 0.9rem;
             max-width: 200px;
-            /* Beri ruang lebih sedikit */
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -45,44 +43,15 @@
             cursor: pointer;
         }
 
-      
-
-        .search-bar {
-            display: flex;
-            margin-bottom: 20px;
-        }
-
-        .search-bar input[type="text"] {
-            flex-grow: 1;
-            padding: 10px 15px;
-            font-size: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 5px 0 0 5px;
-        }
-
-        .search-bar button {
-            padding: 10px 15px;
-            background-color: #0a2e6c;
-            color: white;
-            border: none;
-            border-radius: 0 5px 5px 0;
-            cursor: pointer;
-        }
-
         .header-flex {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
-        .pagination-links {
-            margin-top: 20px;
-        }
     </style>
 
     <div class="header-flex">
-        <h1 class="content-title">Berkas Ditandatangani</h1>
-      
+        <h1 class="content-title" style="font-size: 1.5rem; font-weight: bold;">Berkas Ditandatangani</h1>
     </div>
 
     <div class="content-box">
@@ -100,12 +69,20 @@
                 @forelse ($dokumenTertanda as $dokumen)
                     <tr>
                         <td>
-                            <a href="{{ route('dokumen.download', $dokumen->id) }}" target="_blank"
-                                style="color: #0a2e6c; text-decoration: none; font-weight: 600;">
+                            {{-- Gunakan download_url yang disiapkan controller --}}
+                            <a href="{{ $dokumen->download_url }}" target="_blank"
+                               style="color: #0a2e6c; text-decoration: none; font-weight: 600;">
                                 {{ $dokumen->nama_file_asli }}
                             </a>
                         </td>
-                        <td>{{ $dokumen->tipe_dokumen }}</td>
+                        
+                        <td>
+                            @if(isset($dokumen->is_system) && $dokumen->is_system)
+                                <span style="color: #059669; font-weight: bold;">{{ $dokumen->tipe_dokumen }}</span>
+                            @else
+                                {{ $dokumen->tipe_dokumen }}
+                            @endif
+                        </td>
 
                         <td>
                             <div class="crypto-cell" title="{{ $dokumen->hash_combined }}">
@@ -120,20 +97,21 @@
                         </td>
 
                         <td>
-                            <a href="{{ route('integritas.show', $dokumen->id) }}" class="btn-check" target="_blank">
+                            {{-- Gunakan verify_url yang disiapkan controller --}}
+                            <a href="{{ $dokumen->verify_url }}" class="btn-check" target="_blank">
                                 <i class="fa-solid fa-shield-halved"></i> Cek
                             </a>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" style="text-align: center; color: #777;"> Tidak ada berkas yang ditemukan.
+                        <td colspan="5" style="text-align: center; color: #777; padding: 20px;"> 
+                            Tidak ada berkas yang ditemukan.
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
-
     </div>
 
 </x-mahasiswa-layout>

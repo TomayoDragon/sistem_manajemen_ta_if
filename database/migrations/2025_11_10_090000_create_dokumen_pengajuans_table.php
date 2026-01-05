@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('dokumen_pengajuans', function (Blueprint $table) {
@@ -15,24 +18,25 @@ return new class extends Migration
                   ->constrained('pengajuan_sidangs')
                   ->onDelete('cascade');
             
-            // --- UPDATE ENUM DI SINI ---
+            // --- DAFTAR TIPE DOKUMEN YANG DIPERBOLEHKAN ---
+            // Pastikan SEMUA ini ada agar tidak error "Data truncated"
             $table->enum('tipe_dokumen', [
-                'NASKAH_TA',        // Folder (ZIP)
-                'PROPOSAL_TA',      // Proposal + Bukti Penetapan Dosbing
-                'ARTIKEL_JURNAL',   // Artikel Jurnal
-                'KARTU_STUDI',      // Print out KS
-                'SURAT_TUGAS',      // Surat Tugas TA
-                'BUKTI_BIMBINGAN',  // Kartu & Bukti Bimbingan TA
-                'SERTIFIKAT_LSTA',  // Sertifikat LSTA
-                'BUKTI_DOSWAL',     // Bukti Bimbingan Doswal
-                'VIDEO_PROMOSI'     // Video MP4
+                'NASKAH_TA',
+                'PROPOSAL_TA',
+                'ARTIKEL_JURNAL',
+                'KARTU_STUDI',
+                'SURAT_TUGAS',
+                'BUKTI_BIMBINGAN',  // <-- Pastikan ini ada!
+                'SERTIFIKAT_LSTA',
+                'BUKTI_PERSETUJUAN',
+                'VIDEO_PROMOSI'
             ]);
-            // ---------------------------
+            // ---------------------------------------------
             
             $table->string('path_penyimpanan');
             $table->string('nama_file_asli');
 
-            // Atribut Kriptografi (Tetap Ada)
+            // Kolom Kriptografi
             $table->string('hash_sha512_full', 128);
             $table->string('hash_blake2b_full', 128);
             $table->string('hash_combined', 128);
@@ -43,6 +47,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('dokumen_pengajuans');

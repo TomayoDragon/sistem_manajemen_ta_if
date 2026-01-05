@@ -49,7 +49,7 @@ class JadwalMonitoringController extends Controller
                 'mahasiswa' => $lsta->tugasAkhir->mahasiswa->nama_lengkap . ' (' . $lsta->tugasAkhir->mahasiswa->nrp . ')',
                 'judul' => $lsta->tugasAkhir->judul,
                 'pembimbing' => '<small>1.</small> ' . $lsta->tugasAkhir->dosenPembimbing1->nama_lengkap . '<br>' .
-                    '<small>2.</small> ' . $lsta->tugasAkhir->dosenPembimbing2->nama_lengkap,
+                    '<small>2.</small> ' . ($lsta->tugasAkhir->dosenPembimbing2 ? $lsta->tugasAkhir->dosenPembimbing2->nama_lengkap : '-'),
                 'penguji' => $lsta->dosenPenguji->nama_lengkap,
                 'status' => $lsta->status,
             ]);
@@ -67,8 +67,8 @@ class JadwalMonitoringController extends Controller
                 'ruangan' => $sidang->ruangan,
                 'mahasiswa' => $sidang->tugasAkhir->mahasiswa->nama_lengkap . ' (' . $sidang->tugasAkhir->mahasiswa->nrp . ')',
                 'judul' => $sidang->tugasAkhir->judul,
-                'pembimbing' => '<small>1.</small> ' . $sidang->tugasAkhir->dosenPembimbing1->nama_lengkap . '<br>' .
-                    '<small>2.</small> ' . $sidang->tugasAkhir->dosenPembimbing2->nama_lengkap,
+               'pembimbing' => '<small>1.</small> ' . $lsta->tugasAkhir->dosenPembimbing1->nama_lengkap . '<br>' .
+                '<small>2.</small> ' . ($lsta->tugasAkhir->dosenPembimbing2 ? $lsta->tugasAkhir->dosenPembimbing2->nama_lengkap : '-'),
                 'penguji' => 'Ketua: ' . $sidang->dosenPengujiKetua->nama_lengkap . '<br>Sek: ' . $sidang->dosenPengujiSekretaris->nama_lengkap,
                 'status' => $sidang->status,
             ]);

@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Berita Acara Sidang - {{ $mahasiswa->nrp }}</title>
     <style>
         /* CSS untuk meniru layout dokumen */
         @page {
-            margin: 0.75in; /* Margin standar dokumen */
+            margin: 0.75in;
         }
+
         body {
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
             line-height: 1.4;
         }
+
         h3 {
             text-align: center;
             font-size: 14pt;
@@ -20,28 +23,28 @@
             margin: 0;
             padding: 0;
         }
-        h4 {
-            text-align: center;
-            font-size: 12pt;
-            margin: 0;
-            padding: 0;
-            font-weight: normal;
-        }
-        
+
         /* Tabel Info (Nama, NRP, dll) */
         .table-info {
             width: 100%;
             margin-top: 20px;
-            margin-left: 20px; /* Indentasi seperti contoh */
+            margin-left: 20px;
             border-collapse: collapse;
         }
+
         .table-info td {
             padding: 1px 5px;
             vertical-align: top;
         }
-        .table-info td:first-child { width: 120px; }
-        .table-info td:nth-child(2) { width: 10px; }
-        
+
+        .table-info td:first-child {
+            width: 120px;
+        }
+
+        .table-info td:nth-child(2) {
+            width: 10px;
+        }
+
         /* Tabel Utama (Judul, Nilai, Tim Penguji) */
         .table-main {
             width: 100%;
@@ -49,29 +52,35 @@
             border: 2px solid black;
             margin-top: 15px;
         }
-        .table-main th, .table-main td {
+
+        .table-main th,
+        .table-main td {
             border: 1px solid black;
             padding: 5px 8px;
             vertical-align: top;
         }
-        
+
         /* Baris Judul & Pembimbing */
         .table-main .header-cell {
             width: 25%;
             font-weight: bold;
             text-align: center;
         }
+
         .table-main .content-cell {
             width: 75%;
         }
+
         .table-main .pembimbing-table {
             width: 100%;
             border-collapse: collapse;
         }
+
         .table-main .pembimbing-table td {
             border: none;
             padding: 2px;
         }
+
         .table-main .pembimbing-table td:first-child {
             width: 15px;
         }
@@ -82,41 +91,51 @@
             border-collapse: collapse;
             text-align: center;
         }
-        .table-nilai th, .table-nilai td {
+
+        .table-nilai th,
+        .table-nilai td {
             border: 1px solid black;
             padding: 5px;
         }
-        .table-nilai th { font-size: 10pt; }
+
+        .table-nilai th {
+            font-size: 10pt;
+        }
+
         .table-nilai td {
             font-size: 11pt;
             font-weight: bold;
             height: 30px;
         }
-        
-        /* Tim Penguji (Sekarang terpisah & lebih besar) */
+
+        /* Tim Penguji */
         .tim-penguji-title {
-            margin-top: 15px; /* Jarak dari tabel utama */
+            margin-top: 15px;
             font-weight: bold;
         }
+
         .table-penguji {
             width: 100%;
             border-collapse: collapse;
             border: 1px solid black;
-            margin-top: 5px; /* Jarak dari teks "Tim Penguji:" */
+            margin-top: 5px;
         }
+
         .table-penguji th {
             border: 1px solid black;
             padding: 5px;
             text-align: center;
         }
+
         .table-penguji td {
             border: 1px solid black;
             padding: 5px 8px;
-            height: 100px; /* Ruang untuk TTD */
-            vertical-align: top; /* Teks nama rata atas */
+            height: 100px; /* Ruang TTD */
+            vertical-align: top;
         }
+
         .table-penguji .anggota-cell {
-            height: auto; /* Biarkan tinggi menyesuaikan konten */
+            height: auto;
             padding: 5px 8px;
             font-weight: bold;
         }
@@ -127,28 +146,55 @@
             margin-top: 20px;
             border-collapse: collapse;
         }
+
         .table-signature td {
             padding: 5px;
             width: 33.33%;
             vertical-align: top;
-            height: 80px; /* <-- DIUBAH: Lebih kecil dari 120px */
+            height: 80px;
         }
+
         .table-signature td.right-align {
             text-align: right;
         }
     </style>
 </head>
+
 <body>
-    
+
     <h3>BERITA ACARA UJIAN SKRIPSI/TUGAS AKHIR</h3>
 
     <table class="table-info">
-        <tr> <td>Nama</td> <td>:</td> <td>{{ $mahasiswa->nama_lengkap }}</td> </tr>
-        <tr> <td>NRP</td> <td>:</td> <td>{{ $mahasiswa->nrp }}</td> </tr>
-        <tr> <td>Program Studi</td> <td>:</td> <td>Teknik Informatika</td> </tr>
-        <tr> <td>Hari, Tanggal</td> <td>:</td> <td>{{ \Carbon\Carbon::parse($sidang->jadwal)->translatedFormat('l, d F Y') }}</td> </tr>
-        <tr> <td>Waktu</td> <td>:</td> <td>{{ \Carbon\Carbon::parse($sidang->jadwal)->format('H:i') }} WIB</td> </tr>
-        <tr> <td>Tempat</td> <td>:</td> <td>{{ $sidang->ruangan }}</td> </tr>
+        <tr>
+            <td>Nama</td>
+            <td>:</td>
+            <td>{{ $mahasiswa->nama_lengkap }}</td>
+        </tr>
+        <tr>
+            <td>NRP</td>
+            <td>:</td>
+            <td>{{ $mahasiswa->nrp }}</td>
+        </tr>
+        <tr>
+            <td>Program Studi</td>
+            <td>:</td>
+            <td>Teknik Informatika</td>
+        </tr>
+        <tr>
+            <td>Hari, Tanggal</td>
+            <td>:</td>
+            <td>{{ \Carbon\Carbon::parse($sidang->jadwal)->translatedFormat('l, d F Y') }}</td>
+        </tr>
+        <tr>
+            <td>Waktu</td>
+            <td>:</td>
+            <td>{{ \Carbon\Carbon::parse($sidang->jadwal)->format('H:i') }} WIB</td>
+        </tr>
+        <tr>
+            <td>Tempat</td>
+            <td>:</td>
+            <td>{{ $sidang->ruangan }}</td>
+        </tr>
     </table>
 
     <table class="table-main">
@@ -160,12 +206,19 @@
             <td class="header-cell">PEMBIMBING SKRIPSI</td>
             <td class="content-cell">
                 <table class="pembimbing-table">
-                    <tr> <td>1.</td> <td>{{ $ta->dosenPembimbing1->nama_lengkap }}</td> </tr>
-                    <tr> <td>2.</td> <td>{{ $ta->dosenPembimbing2->nama_lengkap }}</td> </tr>
+                    <tr>
+                        <td>1.</td>
+                        <td>{{ $ta->dosenPembimbing1->nama_lengkap ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td>2.</td>
+                        {{-- PERBAIKAN 1: Gunakan Null Safe Operator agar tidak crash jika null --}}
+                        <td>{{ $ta->dosenPembimbing2?->nama_lengkap ?? '-' }}</td>
+                    </tr>
                 </table>
             </td>
         </tr>
-        {{-- BARIS "KEJADIAN-KEJADIAN SELAMA UJIAN" DIHAPUS --}}
+        
         <tr>
             <td class="header-cell">NILAI</td>
             <td>
@@ -189,38 +242,55 @@
         </tr>
     </table>
 
-    {{-- TABEL KATEGORI NILAI DIHAPUS --}}
-    
     <div class="tim-penguji-title">Tim Penguji:</div>
     <table class="table-penguji">
-        <tr>
-            <th>Ketua,</th>
-            <th>Sekretaris,</th>
-        </tr>
-        <tr>
-            <td>{{ $sidang->dosenPengujiKetua->nama_lengkap ?? 'N/A' }}</td>
-            <td>{{ $sidang->dosenPengujiSekretaris->nama_lengkap ?? 'N/A' }}</td>
-        </tr>
-        <tr>
-            <td colspan="2" class="anggota-cell">Anggota,</td>
-        </tr>
-        <tr>
-            <td>{{ $ta->dosenPembimbing1->nama_lengkap ?? 'N/A' }}</td>
-            <td>{{ $ta->dosenPembimbing2->nama_lengkap ?? 'N/A' }}</td>
-        </tr>
+        <thead>
+            <tr>
+                <th style="width: 50%;">Ketua,</th>
+                <th style="width: 50%;">Sekretaris,</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{-- BARIS 1: Ketua & Sekretaris (Selalu Ada) --}}
+            <tr>
+                <td>{{ $sidang->dosenPengujiKetua->nama_lengkap ?? '-' }}</td>
+                <td>{{ $sidang->dosenPengujiSekretaris->nama_lengkap ?? '-' }}</td>
+            </tr>
+            
+            {{-- HEADER ANGGOTA --}}
+            <tr>
+                <td colspan="2" class="anggota-cell">Anggota,</td>
+            </tr>
+
+            {{-- BARIS 2: Pembimbing 1 & 2 (Kondisional) --}}
+            <tr>
+                @if($ta->dosenPembimbing2)
+                    {{-- KASUS A: Ada 4 Orang (2 Pembimbing) --}}
+                    {{-- Tampilkan normal kiri kanan --}}
+                    <td>{{ $ta->dosenPembimbing1->nama_lengkap ?? '-' }}</td>
+                    <td>{{ $ta->dosenPembimbing2->nama_lengkap }}</td>
+                @else
+                    {{-- KASUS B: Ada 3 Orang (Cuma 1 Pembimbing) --}}
+                    {{-- Gabungkan cell jadi satu (colspan=2) --}}
+                    <td colspan="2" style="text-align: center;">{{ $ta->dosenPembimbing1->nama_lengkap ?? '-' }}</td>
+                @endif
+            </tr>
+        </tbody>
     </table>
 
     <table class="table-signature">
         <tr>
             <td>Mahasiswa yang Diuji,</td>
-            <td class="right-align" colspan="2">Surabaya, {{ \Carbon\Carbon::parse($sidang->jadwal)->translatedFormat('d F Y') }}</td>
+            <td class="right-align" colspan="2">Surabaya,
+                {{ \Carbon\Carbon::parse($sidang->jadwal)->translatedFormat('d F Y') }}</td>
         </tr>
         <tr>
             <td style="vertical-align: bottom;">{{ $mahasiswa->nama_lengkap }}</td>
             <td class="right-align" colspan="2" style="vertical-align: bottom;">
-Dr. Joko Siswantoro, S.Si., M.Si.</td>
+                Dr. Joko Siswantoro, S.Si., M.Si.</td>
         </tr>
     </table>
 
 </body>
+
 </html>

@@ -1,208 +1,203 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Lembar Revisi Sidang</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Form Usulan Perbaikan</title>
     <style>
         body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.3;
-            color: #000;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 3px double black;
-            padding-bottom: 10px;
-        }
-
-        .header h3 {
-            margin: 0;
-            font-size: 14pt;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .header h2 {
-            margin: 5px 0 0 0;
-            font-size: 16pt;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .header p {
-            margin: 0;
+            font-family: Arial, sans-serif;
             font-size: 11pt;
-            font-style: italic;
+            line-height: 1.3;
         }
-
-        .meta-table {
+        /* KUNCI: Class untuk memutus halaman */
+        .page-break {
+            page-break-after: always;
+        }
+        
+        .container {
             width: 100%;
-            margin-bottom: 20px;
-            border-collapse: collapse;
+            padding: 10px;
         }
 
-        .meta-table td {
-            vertical-align: top;
-            padding: 4px 0;
-        }
-
-        .label {
-            width: 160px;
-            font-weight: bold;
-        }
-
-        .sep {
-            width: 10px;
+        /* --- PERUBAHAN 1: HAPUS GARIS BAWAH --- */
+        h3 {
             text-align: center;
+            /* text-decoration: underline;  <-- DIHAPUS */
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-transform: uppercase;
         }
 
+        /* Table Header (Info Mhs) */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .header-table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        .label-col { width: 25%; }
+        .sep-col { width: 2%; }
+
+        /* Table Content (Isi Revisi) */
         .content-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            border: 1px solid black;
+            margin-bottom: 20px;
         }
-
-        .content-table th,
-        .content-table td {
+        .content-table th, .content-table td {
             border: 1px solid black;
             padding: 8px;
-            vertical-align: top;
-            text-align: left;
         }
-
         .content-table th {
             background-color: #f0f0f0;
             text-align: center;
             font-weight: bold;
         }
 
-        .col-no {
-            width: 5%;
+        /* --- PERUBAHAN 2: LAYOUT TANDA TANGAN BERSEBELAHAN --- */
+        .signature-section {
+            width: 100%;
+            margin-top: 30px;
+            display: table; /* Gunakan table layout untuk PDF */
+            border-collapse: collapse;
+        }
+
+        .signature-box {
+            display: table-cell;
+            width: 50%; /* Bagi dua kolom sama rata */
+            vertical-align: top;
+            padding: 10px;
+        }
+
+        /* Kotak Kiri (Dosen) */
+        .left-box {
             text-align: center;
         }
 
-        .col-dosen {
-            width: 30%;
+        /* Kotak Kanan (Mahasiswa) */
+        .right-box {
+            border: 1px solid black; /* Tambahkan border sesuai contoh */
+            text-align: left;
+            padding: 15px;
+            font-size: 10pt;
         }
 
-        .col-revisi {
-            width: 65%;
+        .ttd-space {
+            height: 80px; /* Ruang untuk tanda tangan */
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-
-        .footer {
-            margin-top: 60px;
-            width: 100%;
-        }
-
-        .ttd-container {
-            width: 100%;
-            text-align: right;
-        }
-
-        .ttd-box {
-            display: inline-block;
-            text-align: center;
-            width: 250px;
-        }
-
-        .ttd-line {
-            margin-top: 80px;
-            border-top: 1px solid black;
-        }
-
-        .page-break {
-            page-break-after: always;
-        }
+        
     </style>
 </head>
-
 <body>
 
-    <div class="header">
-        <h3>Program Studi Informatika</h3>
-        <h3>Fakultas Teknik - Universitas Surabaya</h3>
-        <h2>Lembar Revisi Sidang Tugas Akhir</h2>
-    </div>
+    {{-- LOOPING UTAMA: Mencetak Halaman per Dosen --}}
+    @foreach($daftarPenguji as $penguji)
+    
+    <div class="container">
+        <h3>Form Usulan Perbaikan</h3>
 
-    <table class="meta-table">
-        <tr>
-            <td class="label">Nama Mahasiswa</td>
-            <td class="sep">:</td>
-            <td>{{ $sidang->tugasAkhir->mahasiswa->nama_lengkap ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="label">NRP</td>
-            <td class="sep">:</td>
-            <td>{{ $sidang->tugasAkhir->mahasiswa->nrp ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="label">Judul Tugas Akhir</td>
-            <td class="sep">:</td>
-            <td style="text-align: justify;">{{ $sidang->tugasAkhir->judul ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="label">Tanggal Sidang</td>
-            <td class="sep">:</td>
-            <td>{{ \Carbon\Carbon::parse($sidang->jadwal)->locale('id')->isoFormat('dddd, D MMMM Y') }}</td>
-        </tr>
-        <tr>
-            <td class="label">Periode Sidang</td>
-            <td class="sep">:</td>
-            <td>{{ $sidang->eventSidang->nama_event ?? '-' }}</td>
-        </tr>
-    </table>
-
-    <table class="content-table">
-        <thead>
+        <table class="header-table">
             <tr>
-                <th class="col-no">No</th>
-                <th class="col-dosen">Dosen Penguji</th>
-                <th class="col-revisi">Komentar / Poin Revisi</th>
+                <td class="label-col">Nama Pemb/Penguji</td>
+                <td class="sep-col">:</td>
+                <td><strong>{{ $penguji['nama_dosen'] }}</strong></td>
             </tr>
-        </thead>
-        <tbody>
-            @forelse($sidang->lembarPenilaians as $index => $penilaian)
-                <tr>
-                    {{-- KOLOM 1: NO --}}
-                    <td style="text-align: center;">{{ $index + 1 }}</td>
-                    
-                    {{-- KOLOM 2: NAMA DOSEN (Ini yang tadi hilang di kode Anda) --}}
-                    <td>
-                        <strong>{{ $penilaian->dosen->nama_lengkap ?? 'Dosen Penguji' }}</strong>
-                    </td>
+            <tr>
+                <td>Nama</td>
+                <td>:</td>
+                <td>{{ $mahasiswa->nama_lengkap }} ({{ $mahasiswa->nrp }})</td>
+            </tr>
+            <tr>
+                <td>Program</td>
+                <td>:</td>
+                <td>Teknik Informatika</td>
+            </tr>
+            <tr>
+                <td>Judul Skripsi</td>
+                <td>:</td>
+                <td>{{ $judul }}</td>
+            </tr>
+            <tr>
+                <td>Tanggal Ujian</td>
+                <td>:</td>
+                <td>{{ \Carbon\Carbon::parse($tanggal_sidang)->translatedFormat('d F Y') }}</td>
+            </tr>
+        </table>
 
-                    {{-- KOLOM 3: REVISI --}}
-                    <td>
-                        @if($penilaian->komentar_revisi)
-                            {!! nl2br(e($penilaian->komentar_revisi)) !!}
-                        @else
-                            <em style="color: #777;">- Tidak ada catatan revisi -</em>
-                        @endif
-                    </td>
-                </tr>
-            @empty
+        <h4>Usulan Perbaikan</h4>
+        <table class="content-table">
+            <thead>
                 <tr>
-                    <td colspan="3" style="text-align: center; padding: 20px;">
-                        <em>Belum ada data penilaian atau revisi untuk sidang ini.</em>
-                    </td>
+                    <th width="5%">No</th>
+                    <th>Uraian</th>
                 </tr>
-            @endforelse
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {{-- Loop Catatan Revisi --}}
+                @forelse($penguji['revisi'] as $index => $poin)
+                    <tr>
+                        <td style="text-align: center;">{{ $index + 1 }}</td>
+                        <td>{{ $poin }}</td>
+                    </tr>
+                @empty
+                    {{-- Jika Kosong, Tampilkan 5 Baris Kosong --}}
+                    @for($i=1; $i<=5; $i++)
+                    <tr>
+                        <td style="text-align: center;">{{ $i }}</td>
+                        <td style="height: 25px;"></td>
+                    </tr>
+                    @endfor
+                @endforelse
+            </tbody>
+        </table>
 
-    <div class="footer">
-        <div class="ttd-container">
-            <div class="ttd-box">
-                <p>Diketahui oleh,<br>Dosen Pembimbing</p>
-                <div class="ttd-line"></div>
+        {{-- --- BAGIAN TANDA TANGAN BARU (BERSEBELAHAN) --- --}}
+        <div class="signature-section">
+            
+            <div class="signature-box left-box">
+                <p>Tanda tangan penguji/pembimbing</p>
+                
+                <div class="ttd-space">
+                    @if(isset($qr_code)) 
+                        <small style="color:gray;">[Digitally Signed]</small>
+                    @else
+                        <br><br><br>
+                    @endif
+                </div>
+
+                <p>( <strong>{{ $penguji['nama_dosen'] }}</strong> )</p>
             </div>
+
+            <div class="signature-box right-box">
+                <p>
+                    Tanda tangan di sini setelah mahasiswa menunjukkan hasil revisi (perbaikan yang dilakukan mahasiswa telah memenuhi usulan/harapan saya).
+                </p>
+                <br>
+                <p>Tanda tangan:</p>
+
+                <div class="ttd-space">
+                    </div>
+
+                <p>( ....................................................... )</p>
+            </div>
+
         </div>
+        {{-- --- AKHIR BAGIAN TANDA TANGAN BARU --- --}}
+
     </div>
+
+    {{-- PAGE BREAK: Jangan break di halaman terakhir --}}
+    @if(!$loop->last)
+        <div class="page-break"></div>
+    @endif
+
+    @endforeach
 
 </body>
-
 </html>

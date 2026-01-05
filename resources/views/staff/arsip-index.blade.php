@@ -82,9 +82,9 @@
                         </td>
                         <td>{{ \Illuminate\Support\Str::limit($ta->judul, 80) }}</td>
                         <td>
-                            <div style="font-size: 0.9em;">
+                         <div style="font-size: 0.9em;">
                                 1. {{ $ta->dosenPembimbing1->nama_lengkap }}<br>
-                                2. {{ $ta->dosenPembimbing2->nama_lengkap }}
+                                2. {{ $ta->dosenPembimbing2 ? $ta->dosenPembimbing2->nama_lengkap : '-' }}
                             </div>
                         </td>
                         <td>

@@ -15,7 +15,6 @@ use App\Http\Controllers\Mahasiswa\UploadController;
 use App\Http\Controllers\Mahasiswa\SidangController;
 use App\Http\Controllers\Mahasiswa\BeritaAcaraController;
 use App\Http\Controllers\Mahasiswa\DigitalSignatureController;
-// HAPUS 'KeyGenerationController' KARENA OTOMATIS
 
 // Dosen
 use App\Http\Controllers\Dosen\DashboardController as DosenDashboardController;
@@ -27,8 +26,8 @@ use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\ValidasiController;
 use App\Http\Controllers\Staff\ArsipController;
 use App\Http\Controllers\Staff\PeriodeController;
-use App\Http\Controllers\Staff\JadwalExcelController; // <-- Controller Excel kita
-use App\Http\Controllers\Staff\JadwalMonitoringController; // <-- Controller Excel kita
+use App\Http\Controllers\Staff\JadwalExcelController;
+use App\Http\Controllers\Staff\JadwalMonitoringController;
 
 
 /*
@@ -53,7 +52,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
         Route::get('/sidang', [SidangController::class, 'index'])->name('sidang');
         Route::get('/signature', [DigitalSignatureController::class, 'index'])->name('signature');
-        // HAPUS RUTE 'keys.generate' (INI YANG MENYEBABKAN ERROR)
     });
 
     // --- GRUP DOSEN ---
@@ -66,9 +64,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // --- GRUP STAFF ---
-    // --- GRUP STAFF ---
     Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
-
+        Route::get('/ta/import', [App\Http\Controllers\Staff\TugasAkhirExcelController::class, 'index'])->name('import_ta');
+        Route::get('/ta/template', [App\Http\Controllers\Staff\TugasAkhirExcelController::class, 'downloadTemplate'])->name('ta.template');
+        Route::post('/ta/import', [App\Http\Controllers\Staff\TugasAkhirExcelController::class, 'import'])->name('ta.import.process');
         // 1. Dashboard
         Route::get('/dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
 
@@ -112,12 +111,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/integritas/{dokumen}', [IntegritasController::class, 'show'])->name('integritas.show');
     Route::post('/integritas/{dokumen}', [IntegritasController::class, 'verify'])->name('integritas.verify');
     Route::get('/dokumen/{dokumen}/download', [DokumenController::class, 'download'])->name('dokumen.download');
-    Route::get('/dokumen/{dokumen}/download', [DokumenController::class, 'download'])
-        ->name('dokumen.download');
 
-    // 2. Download Hasil Sidang (Yang Baru: Revisi & BA)
+    // Download Hasil Sidang (Berita Acara)
     Route::get('/hasil-sidang/{sidang}/{jenis}', [DokumenController::class, 'downloadHasilSidang'])
         ->name('dokumen.hasil-sidang');
+
+    // === SOLUSI ERROR ROUTE NOT FOUND & DOWNLOAD ===
+    // Ditaruh di sini agar namanya persis 'dokumen.sidang.download' 
+    Route::get('/dokumen/sidang/{id}/revisi', [SidangController::class, 'downloadRevisi'])
+        ->name('dokumen.sidang.download');
+    // ===============================================
+
     // Rute Profil Bawaan Breeze
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

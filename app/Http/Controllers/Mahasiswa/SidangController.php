@@ -6,10 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Sidang;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-use App\Models\DokumenHasilSidang;
-use App\Services\SystemSignatureService;
+use App\Services\DokumenSystemHelper;
 
 class SidangController extends Controller
 {
@@ -44,7 +42,6 @@ class SidangController extends Controller
 
             $lstaTerbaru = $tugasAkhir->lstas()->latest()->first();
 
-            // --- PERBARUI BARIS INI ---
             // Ambil jadwal Sidang terbaru DAN data Berita Acaranya (jika ada)
             $sidangTerbaru = $tugasAkhir->sidangs()
                 ->with('beritaAcara') // Eager-load relasi Berita Acara
@@ -60,74 +57,52 @@ class SidangController extends Controller
         ]);
     }
 
-  public function downloadRevisi($id, SystemSignatureService $signer)
+    /**
+     * Download File Revisi Gabungan
+     */
+    public function downloadRevisi($id)
     {
-        // Ambil Data Sidang
-        $sidang = Sidang::with([
-            'tugasAkhir.mahasiswa', 
-            'eventSidang',          
-            'lembarPenilaians.dosen'
-        ])->findOrFail($id);
+        // 1. Ambil Data Sidang
+        $sidang = Sidang::with('tugasAkhir.mahasiswa')->findOrFail($id);
 
-        // --- 1. SECURITY CHECK ---
+        // 2. Security Check (Pastikan pemilik sidang)
         $mahasiswaLogin = Auth::user()->mahasiswa;
         if ($sidang->tugasAkhir->mahasiswa_id !== $mahasiswaLogin->id) {
             abort(403, 'Akses Ditolak.');
         }
 
-        // --- 2. CEK DB: APAKAH DOKUMEN SUDAH ADA? ---
-        // Kita cek di tabel baru (dokumen_hasil_sidangs)
-        $existingDoc = DokumenHasilSidang::where('sidang_id', $sidang->id)
-                                         ->where('jenis_dokumen', 'LEMBAR_REVISI')
-                                         ->latest()
-                                         ->first();
+        // 3. Tentukan Path File
+        $nrp = $sidang->tugasAkhir->mahasiswa->nrp;
+        $fileName = "Revisi_Gabungan_{$nrp}_{$sidang->id}.pdf";
 
-        // Jika data ada di DB DAN file fisiknya ada di storage
-        if ($existingDoc && Storage::exists($existingDoc->path_file)) {
-            return Storage::download($existingDoc->path_file, $existingDoc->nama_file_asli);
+        // Path relatif di storage/app/public/
+        $relativePath = "uploads/revisi/{$fileName}";
+
+        // 4. Cek File & Generate jika belum ada
+        if (!Storage::disk('public')->exists($relativePath)) {
+            try {
+                // === PERBAIKAN DI SINI (FIX STATIC CALL) ===
+
+                // A. Load relasi dulu agar Helper tidak error "null property"
+                $sidang->load(['dosenPengujiKetua', 'dosenPengujiSekretaris', 'tugasAkhir.dosenPembimbing1', 'tugasAkhir.dosenPembimbing2']);
+
+                // B. Panggil Helper menggunakan 'app()' karena methodnya Non-Static
+                $helper = app(DokumenSystemHelper::class);
+                $helper->generateRevisi($sidang);
+
+                // Cek lagi apakah berhasil digenerate
+                if (!Storage::disk('public')->exists($relativePath)) {
+                    return back()->with('error', 'Dokumen gagal digenerate.');
+                }
+
+            } catch (\Exception $e) {
+                return back()->with('error', 'Gagal men-generate dokumen revisi: ' . $e->getMessage());
+            }
         }
 
-        // --- 3. JIKA BELUM ADA, GENERATE PDF BARU ---
-        // Load View PDF yang sudah kamu buat sebelumnya
-        $pdf = Pdf::loadView('mahasiswa.revisi_pdf', ['sidang' => $sidang]);
-        $pdf->setPaper('a4', 'portrait');
-        
-        // Ambil isi konten PDF (binary)
-        $pdfContent = $pdf->output(); 
+        // 5. Download File
+        $fullPath = Storage::disk('public')->path($relativePath);
 
-        // --- 4. HASHING (Pakai Service) ---
-        $hashData = $signer->calculateHash($pdfContent);
-
-        // --- 5. SIGNING (Pakai Kunci Sistem) ---
-        try {
-            // Sign hash gabungan (raw binary)
-            $signature = $signer->signWithSystemKey($hashData['raw_combined']);
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal menandatangani dokumen: ' . $e->getMessage());
-        }
-
-        // --- 6. SIMPAN FILE FISIK ---
-        $filename = 'Revisi_Sidang_' . $mahasiswaLogin->nrp . '_' . time() . '.pdf';
-        $path = 'generated_docs/revisi/' . $filename;
-        
-        // Simpan ke storage/app/generated_docs/revisi/
-        Storage::put($path, $pdfContent);
-
-        // --- 7. SIMPAN DATA KE DATABASE ---
-        DokumenHasilSidang::create([
-            'sidang_id' => $sidang->id,
-            'jenis_dokumen' => 'LEMBAR_REVISI',
-            'path_file' => $path,
-            'nama_file_asli' => $filename,
-            // Simpan Hash
-            'hash_sha512_full' => $hashData['sha512'],
-            'hash_blake2b_full' => $hashData['blake2b'],
-            'hash_combined' => $hashData['combined'],
-            // Simpan Signature
-            'signature_data' => $signature, 
-        ]);
-
-        // --- 8. DOWNLOAD ---
-        return Storage::download($path, $filename);
+        return response()->file($fullPath);
     }
 }

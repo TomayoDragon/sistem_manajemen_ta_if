@@ -9,7 +9,7 @@
             background: #fff;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
             border: 1px solid #f0f2f5;
             margin-bottom: 30px;
         }
@@ -21,7 +21,7 @@
             margin-bottom: 25px;
             position: relative;
         }
-        
+
         /* --- Status Box (Alerts) --- */
         .status-box {
             padding: 30px;
@@ -30,31 +30,55 @@
             margin-bottom: 30px;
             border: 2px dashed transparent;
         }
-        .status-box .icon { font-size: 4rem; margin-bottom: 20px; display: block; }
-        .status-box h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 10px; }
-        .status-box p { color: #666; font-size: 1rem; line-height: 1.6; }
+
+        .status-box .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .status-box h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .status-box p {
+            color: #666;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
 
         .pending-box {
             background-color: #fffaf0;
             border-color: #f39c12;
             color: #d35400;
         }
-        .pending-box .icon { color: #f39c12; }
+
+        .pending-box .icon {
+            color: #f39c12;
+        }
 
         .accept-box {
             background-color: #f0fff4;
             border-color: #2ecc71;
             color: #27ae60;
         }
-        .accept-box .icon { color: #2ecc71; }
+
+        .accept-box .icon {
+            color: #2ecc71;
+        }
 
         .reject-box {
             background-color: #fff5f5;
             border-color: #e74c3c;
             color: #c0392b;
         }
-        .reject-box .icon { color: #e74c3c; }
-        
+
+        .reject-box .icon {
+            color: #e74c3c;
+        }
+
         .reject-notes {
             margin-top: 20px;
             background: #fff;
@@ -62,7 +86,7 @@
             border-left: 4px solid #c0392b;
             text-align: left;
             border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         /* --- Form Upload --- */
@@ -72,8 +96,6 @@
             gap: 20px;
         }
 
-        .form-group { margin-bottom: 0; } /* Reset margin karena pakai grid gap */
-        
         .file-input-wrapper {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -81,6 +103,7 @@
             padding: 15px;
             transition: all 0.2s;
         }
+
         .file-input-wrapper:hover {
             border-color: #3498db;
             background: #fff;
@@ -127,22 +150,68 @@
             transition: background-color 0.2s, transform 0.1s;
             box-shadow: 0 4px 6px rgba(10, 46, 108, 0.2);
         }
-        .btn-submit:hover { background-color: #082456; transform: translateY(-2px); }
-        .btn-submit:active { transform: translateY(0); }
+
+        .btn-submit:hover {
+            background-color: #082456;
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
 
         /* --- History Table --- */
-        .history-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .history-table th { background-color: #f8f9fa; color: #2c3e50; font-weight: 700; text-transform: uppercase; font-size: 0.85rem; padding: 12px; border-bottom: 2px solid #e9ecef; text-align: left; }
-        .history-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; color: #333; }
-        
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .badge-pending { background: #fff3cd; color: #856404; }
-        .badge-terima { background: #d4edda; color: #155724; }
-        .badge-tolak { background: #f8d7da; color: #721c24; }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .history-table th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            padding: 12px;
+            border-bottom: 2px solid #e9ecef;
+            text-align: left;
+        }
+
+        .history-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-terima {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-tolak {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 
     <h1 class="content-title">Upload Paket Berkas Sidang</h1>
 
+    {{-- ALERT VALIDASI (ERROR DARI LARAVEL VALIDATION) --}}
     @if ($errors->any())
         <div style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5;">
             <strong><i class="fa-solid fa-triangle-exclamation"></i> Terdapat Kesalahan:</strong>
@@ -152,6 +221,16 @@
         </div>
     @endif
 
+    {{-- ALERT ERROR SYSTEM (DARI CONTROLLER CATCH / LOGIC) --}}
+    {{-- INI YANG SEBELUMNYA HILANG --}}
+    @if (session('error'))
+        <div style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5;">
+            <strong><i class="fa-solid fa-circle-xmark"></i> Gagal:</strong>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- ALERT SUKSES --}}
     @if (session('success'))
         <div style="background: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #86efac;">
             <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
@@ -174,11 +253,11 @@
                 <i class="fa-solid fa-circle-check icon"></i>
                 <h3>Selamat! Berkas Anda Disetujui</h3>
                 <p>
-                    Paket berkas Anda telah valid. Silakan cek menu <strong>"Sidang / LSTA"</strong> secara berkala 
+                    Paket berkas Anda telah valid. Silakan cek menu <strong>"Sidang / LSTA"</strong> secara berkala
                     untuk melihat jadwal sidang Anda.
                 </p>
             </div>
-        
+
         @else
             @if ($pengajuanTerbaru && $pengajuanTerbaru->status_validasi == 'TOLAK')
                 <div class="status-box reject-box">
@@ -194,7 +273,7 @@
 
             <form action="{{ route('mahasiswa.upload.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                
+
                 <div class="upload-grid">
                     <div class="file-input-wrapper">
                         <label>1. Naskah TA (Folder .zip)</label>
@@ -238,10 +317,14 @@
                         <input type="file" name="sertifikat_lsta" class="form-input" accept=".pdf" required>
                     </div>
 
+                    {{-- FILE KE-8 (YANG SUDAH DIPERBAIKI) --}}
                     <div class="file-input-wrapper">
-                        <label>8. Bukti Bimbingan Doswal</label>
-                        <span class="file-desc">Minimal 3x per semester. Format PDF.</span>
-                        <input type="file" name="bukti_doswal" class="form-input" accept=".pdf" required>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            8. Screenshot Bukti Persetujuan Dosbing
+                        </label>
+                        <span class="file-desc">Format: PDF (Max 5MB)</span>
+                        <input type="file" name="bukti_persetujuan" accept=".pdf" required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
 
                     <div class="file-input-wrapper" style="grid-column: 1 / -1;">

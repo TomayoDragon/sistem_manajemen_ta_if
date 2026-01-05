@@ -70,6 +70,7 @@ class JadwalExcelController extends Controller
         $writer->openToFile($filePath);
 
         // 3. Header Excel
+        // PERUBAHAN: Header 'ketua' dan 'sekretaris' diganti 'npk_ketua' dan 'npk_sekretaris' agar jelas
         $headerStyle = (new Style())->setFontBold()->setFontColor(Color::WHITE)->setBackgroundColor(Color::rgb(10, 46, 108));
         $headerCells = [
             Cell::fromValue('nrp'),
@@ -79,8 +80,8 @@ class JadwalExcelController extends Controller
             Cell::fromValue('tanggal'),
             Cell::fromValue('jam'),
             Cell::fromValue('ruang'),
-            Cell::fromValue('ketua'),
-            Cell::fromValue('sekretaris'),
+            Cell::fromValue('npk_ketua'),     // GANTI: ketua -> npk_ketua
+            Cell::fromValue('npk_sekretaris'), // GANTI: sekretaris -> npk_sekretaris
         ];
         $writer->addRow(new Row($headerCells, $headerStyle));
 
@@ -98,9 +99,13 @@ class JadwalExcelController extends Controller
 
             // B. Tentukan Penguji (Random tapi Valid)
             $pembimbingIds = [
-                $pengajuan->tugasAkhir->dosen_pembimbing_1_id,
-                $pengajuan->tugasAkhir->dosen_pembimbing_2_id
+                $pengajuan->tugasAkhir->dosen_pembimbing_1_id
             ];
+
+            // Cek dulu, kalau Dosbing 2 ada, baru dimasukkan ke daftar "Dilarang Jadi Penguji"
+            if ($pengajuan->tugasAkhir->dosen_pembimbing_2_id) {
+                $pembimbingIds[] = $pengajuan->tugasAkhir->dosen_pembimbing_2_id;
+            }
 
             $availablePenguji = $allDosen->whereNotIn('id', $pembimbingIds);
 
@@ -114,16 +119,17 @@ class JadwalExcelController extends Controller
             }
 
             // C. Tulis Baris Excel
+            // PERUBAHAN: Menggunakan ->npk alih-alih ->nama_lengkap
             $dataCells = [
                 Cell::fromValue($pengajuan->tugasAkhir->mahasiswa->nrp),
                 Cell::fromValue($pengajuan->tugasAkhir->mahasiswa->nama_lengkap),
                 Cell::fromValue($pengajuan->tugasAkhir->dosenPembimbing1->nama_lengkap),
-                Cell::fromValue($pengajuan->tugasAkhir->dosenPembimbing2->nama_lengkap),
+                Cell::fromValue($pengajuan->tugasAkhir->dosenPembimbing2 ? $pengajuan->tugasAkhir->dosenPembimbing2->nama_lengkap : '-'),
                 Cell::fromValue($jadwalDraft->format('d/m/Y')),
                 Cell::fromValue($jadwalDraft->format('H:i')),
                 Cell::fromValue($dummyRooms[array_rand($dummyRooms)]),
-                Cell::fromValue($ketua->nama_lengkap),
-                Cell::fromValue($sekretaris->nama_lengkap),
+                Cell::fromValue($ketua->npk),       // GANTI: Output NPK
+                Cell::fromValue($sekretaris->npk), // GANTI: Output NPK
             ];
             $writer->addRow(new Row($dataCells, null));
 
@@ -176,16 +182,19 @@ class JadwalExcelController extends Controller
                     $rowNumber++;
 
                     $nrp = $data['nrp'] ?? null;
-                    if (!$nrp) continue;
+                    if (!$nrp)
+                        continue;
 
                     $tanggal = $data['tanggal'] ?? null;
                     $jam = $data['jam'] ?? null;
                     $ruang = $data['ruang'] ?? null;
-                    $namaKetua = $data['ketua'] ?? null;
-                    $namaSekretaris = $data['sekretaris'] ?? null;
+                    
+                    // PERUBAHAN: Ambil data kolom NPK (sesuai header baru atau lama tetap ditangani)
+                    $npkKetua = $data['npk_ketua'] ?? $data['ketua'] ?? null; 
+                    $npkSekretaris = $data['npk_sekretaris'] ?? $data['sekretaris'] ?? null;
 
-                    if (empty($tanggal) || empty($jam) || empty($ruang) || empty($namaKetua) || empty($namaSekretaris)) {
-                        $errors[] = "Baris $rowNumber (NRP: $nrp): Data jadwal tidak lengkap.";
+                    if (empty($tanggal) || empty($jam) || empty($ruang) || empty($npkKetua) || empty($npkSekretaris)) {
+                        $errors[] = "Baris $rowNumber (NRP: $nrp): Data jadwal tidak lengkap (Pastikan NPK Ketua & Sekretaris terisi).";
                         continue;
                     }
 
@@ -211,10 +220,12 @@ class JadwalExcelController extends Controller
                         continue;
                     }
 
-                    $ketua = Dosen::where('nama_lengkap', 'LIKE', $namaKetua . '%')->first();
-                    $sekretaris = Dosen::where('nama_lengkap', 'LIKE', $namaSekretaris . '%')->first();
+                    // PERUBAHAN LOGIKA PENCARIAN DOSEN: BY NPK
+                    $ketua = Dosen::where('npk', $npkKetua)->first();
+                    $sekretaris = Dosen::where('npk', $npkSekretaris)->first();
+
                     if (!$ketua || !$sekretaris) {
-                        $errors[] = "Baris $rowNumber: Dosen Penguji tidak ditemukan ($namaKetua / $namaSekretaris).";
+                        $errors[] = "Baris $rowNumber: Dosen Penguji tidak ditemukan (Cek NPK: $npkKetua / $npkSekretaris).";
                         continue;
                     }
 
@@ -270,7 +281,7 @@ class JadwalExcelController extends Controller
             }
 
             DB::commit();
-            
+
             // Redirect ke halaman Atur Jadwal lagi (biar list-nya kosong/update)
             return redirect()->route('staff.jadwal.atur')->with('success', 'Jadwal berhasil diperbarui dan tersimpan ke sistem.');
 
