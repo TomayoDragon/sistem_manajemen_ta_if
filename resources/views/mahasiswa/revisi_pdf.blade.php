@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Form Usulan Perbaikan</title>
+    <title>Lembar Revisi Sidang</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -135,15 +135,23 @@
             <thead>
                 <tr>
                     <th width="5%">No</th>
-                    <th>Uraian</th>
+                    <th width="45%">Uraian Revisi (Dosen)</th>
+                    <th width="50%">Keterangan / Tindak Lanjut (Mahasiswa)</th>
                 </tr>
             </thead>
             <tbody>
-                {{-- Loop Catatan Revisi --}}
-                @forelse($penguji['revisi'] as $index => $poin)
+                {{-- Loop Catatan Revisi dari detail_revisi collection (sesuai Milestone 4) --}}
+                @forelse($penguji['detail_revisi'] as $index => $item)
                     <tr>
-                        <td style="text-align: center;">{{ $index + 1 }}</td>
-                        <td>{{ $poin }}</td>
+                        <td style="text-align: center;">{{ $loop->iteration }}</td>
+                        <td>{{ $item->isi_revisi }}</td>
+                        <td>
+                            @if($item->keterangan_mahasiswa)
+                                {{ $item->keterangan_mahasiswa }}
+                            @else
+                                <i style="color: #888;">(Belum diisi)</i>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     {{-- Jika Kosong, Tampilkan 5 Baris Kosong --}}
@@ -151,6 +159,7 @@
                     <tr>
                         <td style="text-align: center;">{{ $i }}</td>
                         <td style="height: 25px;"></td>
+                        <td></td>
                     </tr>
                     @endfor
                 @endforelse
@@ -164,11 +173,8 @@
                 <p>Tanda tangan penguji/pembimbing</p>
                 
                 <div class="ttd-space">
-                    @if(isset($qr_code)) 
-                        <small style="color:gray;">[Digitally Signed]</small>
-                    @else
-                        <br><br><br>
-                    @endif
+                    {{-- Dikosongkan untuk tanda tangan basah --}}
+                    <br><br><br>
                 </div>
 
                 <p>( <strong>{{ $penguji['nama_dosen'] }}</strong> )</p>

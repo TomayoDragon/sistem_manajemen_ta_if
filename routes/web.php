@@ -15,6 +15,7 @@ use App\Http\Controllers\Mahasiswa\UploadController;
 use App\Http\Controllers\Mahasiswa\SidangController;
 use App\Http\Controllers\Mahasiswa\BeritaAcaraController;
 use App\Http\Controllers\Mahasiswa\DigitalSignatureController;
+use App\Http\Controllers\Mahasiswa\RevisiController;
 
 // Dosen
 use App\Http\Controllers\Dosen\DashboardController as DosenDashboardController;
@@ -52,6 +53,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
         Route::get('/sidang', [SidangController::class, 'index'])->name('sidang');
         Route::get('/signature', [DigitalSignatureController::class, 'index'])->name('signature');
+        Route::get('/sidang/{id}/revisi', [RevisiController::class, 'halaman_revisi'])->name('halaman_revisi');
+        Route::put('/sidang/{id}/revisi', [RevisiController::class, 'update'])->name('update');
     });
 
     // --- GRUP DOSEN ---

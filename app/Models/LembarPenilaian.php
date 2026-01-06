@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\DetailRevisi;
 
 class LembarPenilaian extends Model
 {
@@ -31,5 +32,9 @@ class LembarPenilaian extends Model
     public function penilaian()
     {
         return $this->morphTo();
+    }
+    public function detailRevisis()
+    {
+        return $this->hasMany(DetailRevisi::class, 'lembar_penilaian_id');
     }
 }

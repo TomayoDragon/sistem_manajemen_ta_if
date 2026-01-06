@@ -8,6 +8,7 @@ use App\Models\Sidang;
 use App\Models\DokumenHasilSidang;
 use App\Services\SystemSignatureService;
 use App\Models\Dosen;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class DokumenSystemHelper
 {
@@ -29,7 +30,8 @@ class DokumenSystemHelper
             'judul' => $sidang->tugasAkhir->judul,
             'tanggal_sidang' => $sidang->jadwal,
             'qr_code' => true,
-            'daftarPenguji' => $this->getDaftarPenguji($sidang)
+            // Menggunakan fungsi getDaftarPenguji yang sudah diupdate
+            'daftarPenguji' => $this->getDaftarPenguji($sidang) 
         ];
 
         // 2. Generate PDF
@@ -49,7 +51,7 @@ class DokumenSystemHelper
         $sidang->load(['tugasAkhir.dosenPembimbing1', 'tugasAkhir.dosenPembimbing2', 'beritaAcara']);
 
         $data = [
-            'sidang' => $sidang, // <--- INI PERBAIKANNYA (Wajib ada agar view tidak error)
+            'sidang' => $sidang, 
             'ba' => $sidang->beritaAcara,
             'mahasiswa' => $sidang->tugasAkhir->mahasiswa,
             'ta' => $sidang->tugasAkhir,
@@ -69,24 +71,35 @@ class DokumenSystemHelper
     }
 
     /**
-     * PRIVATE: Logic Ambil Data Penguji (Untuk Revisi)
+     * PRIVATE: Logic Ambil Data Penguji
+     * (UPDATED: Mengambil data dari relasi detailRevisis untuk Milestone 4)
      */
     private function getDaftarPenguji($sidang)
     {
         $list = [];
+        
         $addDosen = function($dosenId, $roleName) use ($sidang, &$list) {
             if (!$dosenId) return;
+            
             $dosen = Dosen::find($dosenId);
+            
             if ($dosen) {
-                $nilai = $sidang->lembarPenilaians()->where('dosen_id', $dosen->id)->first();
+                // Ambil Lembar Penilaian dosen ini beserta detail revisinya
+                $nilai = $sidang->lembarPenilaians()
+                                ->with('detailRevisis') // Eager load relasi baru
+                                ->where('dosen_id', $dosen->id)
+                                ->first();
+
                 $list[] = [
                     'nama_dosen' => $dosen->nama_lengkap,
-                    'revisi' => ($nilai && $nilai->komentar_revisi) ? explode("\n", $nilai->komentar_revisi) : []
+                    'peran' => $roleName, // Menambahkan peran untuk ditampilkan di PDF
+                    // Mengirimkan collection detail revisi, bukan array string hasil explode
+                    'detail_revisi' => ($nilai && $nilai->detailRevisis) ? $nilai->detailRevisis : collect([])
                 ];
             }
         };
 
-        $addDosen($sidang->dosen_penguji_ketua_id, 'Ketua');
+        $addDosen($sidang->dosen_penguji_ketua_id, 'Ketua Penguji');
         $addDosen($sidang->dosen_penguji_sekretaris_id, 'Sekretaris');
         $addDosen($sidang->tugasAkhir->dosen_pembimbing_1_id, 'Pembimbing 1');
         $addDosen($sidang->tugasAkhir->dosen_pembimbing_2_id, 'Pembimbing 2');

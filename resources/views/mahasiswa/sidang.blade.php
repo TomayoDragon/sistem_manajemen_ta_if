@@ -290,21 +290,19 @@
 
                         <div class="action-buttons">
 
-                            {{-- TOMBOL DOWNLOAD REVISI (GABUNGAN) --}}
-                            {{-- Mengarah ke SidangController@downloadRevisi --}}
-                            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi', 'mode' => 'view']) }}"
-                                target="_blank" class="btn-custom btn-orange">
-                                <i class="fa-solid fa-file-pdf"></i>
-                                Lihat Form Revisi 
-                            </a>
-                            {{-- TOMBOL LIHAT BERITA ACARA --}}
-                            {{-- Menggunakan route download/view standar untuk Berita Acara --}}
-                            {{-- Pastikan route ini ada, atau sesuaikan dengan route yang Anda miliki --}}
-                            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara', 'mode' => 'view']) }}"
-                                target="_blank" class="btn-custom btn-blue">
-                                <i class="fa-solid fa-certificate"></i>
-                                Lihat Berita Acara
-                            </a>
+                        {{-- [PERBAIKAN] TOMBOL ISI KETERANGAN REVISI (WEB) --}}
+                        {{-- Mengarah ke halaman web interaktif Milestone 3 --}}
+                        <a href="{{ route('mahasiswa.halaman_revisi', $sidang->id) }}" class="btn-custom btn-orange">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Isi Keterangan Revisi
+                        </a>
+
+                        {{-- TOMBOL LIHAT BERITA ACARA --}}
+                        <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'berita-acara', 'mode' => 'view']) }}"
+                            target="_blank" class="btn-custom btn-blue">
+                            <i class="fa-solid fa-certificate"></i>
+                            Lihat Berita Acara
+                        </a>        
                         </div>
 
                     </div>

@@ -15,6 +15,7 @@ class Sidang extends Model
         'jadwal',
         'ruangan',
         'status',
+        'catatan_kejadian',
     ];
     public function tugasAkhir()
     {
