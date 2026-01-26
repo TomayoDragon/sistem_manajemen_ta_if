@@ -15,6 +15,7 @@ class Mahasiswa extends Model
     protected $fillable = [
         'nrp',
         'nama_lengkap',
+        'no_hp',
     ];
     
     protected static function booted(): void

@@ -29,6 +29,7 @@ use App\Http\Controllers\Staff\ArsipController;
 use App\Http\Controllers\Staff\PeriodeController;
 use App\Http\Controllers\Staff\JadwalExcelController;
 use App\Http\Controllers\Staff\JadwalMonitoringController;
+use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 
 
 /*
@@ -49,6 +50,8 @@ Route::middleware(['auth'])->group(function () {
     // --- GRUP MAHASISWA ---
     Route::middleware(['role:mahasiswa'])->prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::put('/update-no-hp', [DashboardController::class, 'updateNoHP'])->name('updateNoHP');
+       // Route::delete('/error', [DashboardController::class, 'error'])->name('error');
         Route::get('/upload', [UploadController::class, 'create'])->name('upload');
         Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
         Route::get('/sidang', [SidangController::class, 'index'])->name('sidang');

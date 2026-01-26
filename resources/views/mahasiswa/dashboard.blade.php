@@ -56,7 +56,7 @@
             @endif
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                
+
                 <div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <span class="text-sm text-gray-500 block">Dosen Pembimbing 1:</span>
                     <div class="font-bold text-gray-800 text-lg">
@@ -82,6 +82,6 @@
                 <p>Anda belum memiliki data Tugas Akhir yang aktif.</p>
             </div>
         @endif
-    </div>
 
+      
 </x-mahasiswa-layout>

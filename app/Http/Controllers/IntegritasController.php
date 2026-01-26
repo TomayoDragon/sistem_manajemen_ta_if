@@ -3,91 +3,98 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\DokumenPengajuan;
-use App\Services\SignatureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+// Models
+use App\Models\DokumenPengajuan;
+use App\Models\DokumenHasilSidang;
+
+// Services
+use App\Services\SignatureService;
+use App\Services\SystemSignatureService; 
+
 class IntegritasController extends Controller
 {
-    private function authorizeAccess(DokumenPengajuan $dokumen)
+    private function findDocument($id, $source)
     {
-        $user = Auth::user();
-        $tugasAkhir = $dokumen->pengajuanSidang->tugasAkhir;
-
-        if ($user->hasRole('mahasiswa')) {
-            if ($tugasAkhir->mahasiswa_id !== $user->mahasiswa_id) {
-                abort(403, 'AKSES DITOLAK.');
-            }
-        } elseif ($user->hasRole('dosen')) {
-            $dosenId = $user->dosen_id;
-            $isPembimbing = ($tugasAkhir->dosen_pembimbing_1_id == $dosenId || $tugasAkhir->dosen_pembimbing_2_id == $dosenId);
-            
-            $isPengujiSidang = $tugasAkhir->sidangs()->where(function($q) use ($dosenId) {
-                $q->where('dosen_penguji_ketua_id', $dosenId)->orWhere('dosen_penguji_sekretaris_id', $dosenId);
-            })->exists();
-            $isPengujiLsta = $tugasAkhir->lstas()->where('dosen_penguji_id', $dosenId)->exists();
-
-            if (!$isPembimbing && !$isPengujiSidang && !$isPengujiLsta) {
-                abort(403, 'AKSES DITOLAK. Anda bukan dosen terkait.');
-            }
-        } elseif ($user->hasRole('staff')) {
-            return true;
-        } else {
-             if (!$user->hasRole('admin')) abort(403);
+        if ($source === 'system') {
+            return DokumenHasilSidang::findOrFail($id);
         }
+        return DokumenPengajuan::findOrFail($id);
     }
 
-    public function show(DokumenPengajuan $dokumen)
+    public function show(Request $request, $id)
     {
-        $this->authorizeAccess($dokumen);
-        $dokumen->load('pengajuanSidang.tugasAkhir.mahasiswa');
-        
+        $source = $request->query('source', 'upload');
+        $dokumen = $this->findDocument($id, $source);
+
+        if ($source === 'system') {
+            $dokumen->load('sidang.tugasAkhir.mahasiswa');
+        } else {
+            $dokumen->load('pengajuanSidang.tugasAkhir.mahasiswa');
+        }
+
         $layout = 'app-layout';
         if (Auth::user()->hasRole('mahasiswa')) $layout = 'mahasiswa-layout';
         if (Auth::user()->hasRole('dosen')) $layout = 'dosen-layout';
-        if (Auth::user()->hasRole('staff')) $layout = 'staff-layout';
 
         return view('integritas-check', [
             'dokumen' => $dokumen,
-            'layout' => $layout
+            'source'  => $source,
+            'layout'  => $layout
         ]);
     }
 
-    /**
-     * Memproses verifikasi menggunakan DIGITAL SIGNATURE (ASLI).
-     */
-    public function verify(Request $request, DokumenPengajuan $dokumen, SignatureService $signatureService)
+    public function verify(Request $request, $id, SignatureService $signatureService, SystemSignatureService $systemService)
     {
-        $this->authorizeAccess($dokumen);
+        $source = $request->input('source', 'upload');
+        $dokumen = $this->findDocument($id, $source);
+        
+        $request->validate(['file_cek' => 'required|file|max:51200']);
 
-        $request->validate([
-            'file_cek' => 'required|file|max:20480',
-        ]);
+        // 1. AMBIL SIGNATURE DARI DB & KONVERSI JIKA PERLU
+        $signatureDB = $dokumen->signature_data;
+        $signatureToVerify = '';
 
-        // 1. Ambil Data Kunci & Signature dari Database
-        $storedSignature = $dokumen->signature_data; // Signature Biner Asli
-        $mahasiswa = $dokumen->pengajuanSidang->tugasAkhir->mahasiswa;
-        $publicKey = $mahasiswa->public_key; // Public Key Mahasiswa
+        if ($source === 'system') {
+            // Sistem menyimpan BASE64 (agar aman dari error UTF-8), jadi harus di-DECODE ke binary
+            $signatureToVerify = base64_decode($signatureDB);
+        } else {
+            // Mahasiswa menyimpan BINARY (berdasarkan info Anda sebelumnya), jadi pakai langsung
+            $signatureToVerify = $signatureDB;
+        }
 
-        // 2. Proses File Baru (Hashing Saja)
+        // 2. TENTUKAN PUBLIC KEY (BASE64)
+        $publicKey = null;
+        if ($source === 'system') {
+            try {
+                $publicKey = $systemService->getPublicKey();
+            } catch (\Exception $e) {
+                return back()->with('error', 'Kunci Sistem belum diset.');
+            }
+        } else {
+            $mahasiswa = $dokumen->pengajuanSidang->tugasAkhir->mahasiswa;
+            $publicKey = $mahasiswa->public_key;
+        }
+
+        // 3. HASH FILE UPLOAD (Menggunakan Logic Mahasiswa/Standard)
         $fileContent = $request->file('file_cek')->get();
         $hashData = $signatureService->performCustomHash($fileContent);
-        $newHashRaw = $hashData['combined_raw_for_signing']; // Hash biner dari file baru
         
-        // 3. LAKUKAN VERIFIKASI SIGNATURE (MENGGUNAKAN PUBLIC KEY)
-        // Ini memastikan Authenticity (Asli dari pemilik) & Non-Repudiation
+        // Pastikan key ini sesuai dengan output SignatureService::performCustomHash Anda
+        $fileHashBin = $hashData['combined_raw_for_signing']; 
+
+        // 4. VERIFIKASI (Sodium butuh: Signature Binary, Hash Binary, Key Base64)
         $isValid = $signatureService->verifySignature(
-            $storedSignature, 
-            $newHashRaw, 
-            $publicKey
+            $signatureToVerify, 
+            $fileHashBin,     
+            $publicKey       
         );
-        
-        // 4. Kembalikan Hasil
-        return redirect()->route('integritas.show', $dokumen->id)
+
+        return redirect()->route('integritas.show', ['dokumen' => $id, 'source' => $source])
             ->with([
-                'checkResult' => $isValid, // True/False
-                'newHash' => $hashData['combined_hex'], // Untuk ditampilkan jika gagal
+                'checkResult' => $isValid,
             ]);
     }
 }

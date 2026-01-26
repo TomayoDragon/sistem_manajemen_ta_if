@@ -24,31 +24,30 @@ class DigitalSignatureController extends Controller
         // -----------------------------------------------------------
         if ($ta) {
             $sidangIds = $ta->sidangs()->pluck('id');
-            // Ambil data dari tabel dokumen_hasil_sidangs
             $systemDocs = DokumenHasilSidang::whereIn('sidang_id', $sidangIds)->latest()->get();
 
             foreach($systemDocs as $doc) {
-                // Kita buat object standar (stdClass) agar strukturnya SAMA dengan DokumenPengajuan
                 $item = new \stdClass();
                 
                 $item->id = $doc->id;
                 $item->nama_file_asli = ($doc->jenis_dokumen == 'BERITA_ACARA') ? 'Berita Acara Sidang.pdf' : 'Lembar Revisi.pdf';
                 $item->tipe_dokumen = ($doc->jenis_dokumen == 'BERITA_ACARA') ? 'BERITA ACARA' : 'LEMBAR REVISI';
                 
-                // MAPPING DATA AGAR SESUAI VIEW
                 $item->hash_combined = $doc->hash_sha512_full ?? $doc->hash_combined ?? '-';
                 $item->signature_base64 = $doc->signature_data;
 
-                // URL untuk Dokumen System (mengarah ke method downloadHasilSidang)
                 $item->download_url = route('dokumen.hasil-sidang', [
                     'sidang' => $doc->sidang_id, 
                     'jenis' => ($doc->jenis_dokumen == 'BERITA_ACARA' ? 'berita-acara' : 'revisi'), 
                     'mode' => 'view'
                 ]);
 
-                // Link verifikasi (Integrity check)
-                // Pastikan route ini support ID dari tabel dokumen_hasil_sidang
-                $item->verify_url = route('integritas.show', ['dokumen' => $doc->id]); 
+                // [PERBAIKAN PENTING DI SINI]
+                // Tambahkan parameter 'source' agar IntegritasController tahu ini dari tabel hasil sidang
+                $item->verify_url = route('integritas.show', [
+                    'dokumen' => $doc->id, 
+                    'source'  => 'system' // <--- Penanda Sumber
+                ]); 
 
                 $item->is_system = true;
                 $item->created_at = $doc->created_at;
@@ -58,12 +57,10 @@ class DigitalSignatureController extends Controller
         }
 
         // -----------------------------------------------------------
-        // 2. DOKUMEN UPLOAD MAHASISWA - MENGGUNAKAN QUERY ORIGINAL ANDA
+        // 2. DOKUMEN UPLOAD MAHASISWA
         // -----------------------------------------------------------
-        
-        // Gunakan Query Original Anda untuk memastikan data yang diambil TEPAT
         $queryUploads = DokumenPengajuan::query()
-            ->where('is_signed', true) // Filter Wajib: Hanya yang sudah ditandatangani
+            ->where('is_signed', true)
             ->whereHas('pengajuanSidang.tugasAkhir', function ($q) use ($mahasiswaId) {
                 $q->where('mahasiswa_id', $mahasiswaId);
             });
@@ -75,36 +72,32 @@ class DigitalSignatureController extends Controller
 
             $item->id = $up->id;
             $item->nama_file_asli = $up->nama_file_asli;
-            $item->tipe_dokumen = $up->tipe_dokumen; // Pastikan kolom ini ada di DB
+            $item->tipe_dokumen = $up->tipe_dokumen;
 
-            // LOGIKA HASH: 
-            // Kita coba ambil dari 'hash_combined' (sesuai view original anda). 
-            // Jika null, coba 'hash_file' atau 'hash'.
-            // Jika formatnya binary (simbol aneh), kita convert ke HEX.
+            // Logic Hash
             $rawHash = $up->hash_combined ?? $up->hash_file ?? $up->hash ?? $up->file_hash;
-            
             if ($rawHash && !ctype_print($rawHash)) {
                 $item->hash_combined = bin2hex($rawHash); 
             } else {
                 $item->hash_combined = $rawHash ?? '-';
             }
 
-            // LOGIKA SIGNATURE:
-            // Coba ambil dari 'signature_base64' (sesuai view original anda).
-            // Jika null, coba 'signature_data' atau 'signature'.
+            // Logic Signature
             $rawSig = $up->signature_base64 ?? $up->signature_data ?? $up->signature;
-            
             if ($rawSig && !ctype_print($rawSig)) {
                 $item->signature_base64 = base64_encode($rawSig);
             } else {
                 $item->signature_base64 = $rawSig ?? '-';
             }
 
-            // URL Download Standar
             $item->download_url = route('dokumen.download', ['dokumen' => $up->id, 'mode' => 'view']);
             
-            // URL Verifikasi Standar
-            $item->verify_url = route('integritas.show', $up->id);
+            // [PERBAIKAN PENTING DI SINI]
+            // Tambahkan parameter 'source' untuk dokumen upload
+            $item->verify_url = route('integritas.show', [
+                'dokumen' => $up->id,
+                'source'  => 'upload' // <--- Penanda Sumber
+            ]);
 
             $item->is_system = false;
             $item->created_at = $up->created_at;
@@ -112,7 +105,6 @@ class DigitalSignatureController extends Controller
             $mergedDocs->push($item);
         }
 
-        // Sortir gabungan berdasarkan tanggal terbaru
         $dokumenTertanda = $mergedDocs->sortByDesc('created_at');
 
         return view('mahasiswa.digital-signature', [

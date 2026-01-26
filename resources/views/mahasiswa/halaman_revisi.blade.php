@@ -322,7 +322,7 @@
         {{-- === TOMBOL AKSI MELAYANG (FLOATING) === --}}
         <div class="sticky-actions">
             {{-- Tombol Download PDF --}}
-            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi', 'mode' => 'view']) }}" class="btn-pdf" target="_blank">
+            <a href="{{ route('dokumen.hasil-sidang', ['sidang' => $sidang->id, 'jenis' => 'revisi', 'mode' => 'view', 't' => time()]) }}" class="btn-pdf" target="_blank">
                 <i class="fa-solid fa-file-pdf"></i> Download PDF
             </a>
 

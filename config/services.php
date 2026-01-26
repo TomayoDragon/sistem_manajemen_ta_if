@@ -27,6 +27,10 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'signature' => [
+        'system_secret_key' => env('SYSTEM_SECRET_KEY'),
+        'system_public_key' => env('SYSTEM_PUBLIC_KEY'),
+    ],
 
     'slack' => [
         'notifications' => [

@@ -21,13 +21,12 @@ class SignatureService
 
         $encryptedPrivateKey = Crypt::encryptString(base64_encode($privateKey));
 
-        // PERBAIKAN: Gunakan forceFill agar tersimpan meski tidak ada di $fillable
         $mahasiswa->forceFill([
             'public_key' => base64_encode($publicKey),
             'private_key_encrypted' => $encryptedPrivateKey
         ])->saveQuietly();
         
-        sodium_memzero($privateKey);
+        sodium_memzero($privateKey); // hapus dari ram supaya aman
         sodium_memzero($keyPair);
     }
 
@@ -40,7 +39,7 @@ class SignatureService
      */
     public function getConcatenatedFileContentsFromVerification(Request $request): string
     {
-        return ''; // Helper (tidak dipakai di logika per-file ini)
+        return '';
     }
 
    public function performCustomHash(string $content): array

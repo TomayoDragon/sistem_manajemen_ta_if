@@ -13,13 +13,13 @@ class TugasAkhir extends Model
 
     protected $fillable = [
         'mahasiswa_id',
-        'periode_id', // <-- TAMBAHKAN INI
+        'periode_id', 
         'judul',
         'dosen_pembimbing_1_id',
         'dosen_pembimbing_2_id',
         'status',
-        'dosbing_1_approved_at', // <-- Ini dari logic Persetujuan Dosbing
-        'dosbing_2_approved_at', // <-- Ini dari logic Persetujuan Dosbing
+        'dosbing_1_approved_at', 
+        'dosbing_2_approved_at', 
     ];
     /**
      * Relasi ke Dosen Pembimbing 1
