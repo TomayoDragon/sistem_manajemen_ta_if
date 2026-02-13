@@ -22,6 +22,7 @@ class DokumenPengajuan extends Model
         'hash_combined',
         'signature_data',
         'is_signed',
+        'external_link',
     ];
 
     /**

@@ -89,9 +89,6 @@ class SignatureService
         return $signature;
     }
 
-    // =================================================================
-    // 4. VERIFIKASI (INI YANG HILANG TADI)
-    // =================================================================
 
     /**
      * Memverifikasi Tanda Tangan Digital.

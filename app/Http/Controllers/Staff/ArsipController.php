@@ -10,69 +10,51 @@ use App\Models\Periode;
 class ArsipController extends Controller
 {
     /**
-     * Menampilkan halaman Arsip TA dengan fitur PENCARIAN dan FILTER PERIODE.
+     * Menampilkan halaman Arsip TA dengan optimasi DataTables.
      */
     public function index(Request $request)
     {
-        // 1. Ambil data dari request (search & filter)
-        $searchQuery = $request->search;
         $selectedPeriodeId = $request->periode_id;
 
-        // 2. Ambil SEMUA periode untuk mengisi dropdown
-        // PERBAIKAN: Urutkan berdasarkan 'tanggal_mulai' (karena tahun_akademik sudah dihapus)
+        // 1. Ambil SEMUA periode untuk dropdown filter
         $periodes = Periode::orderBy('tanggal_mulai', 'desc')->get();
 
-        // 3. Query utama untuk mengambil data TA
+        // 2. Query Utama
         $query = TugasAkhir::query()
-                            ->with('mahasiswa', 'dosenPembimbing1', 'dosenPembimbing2', 'periode')
-                            ->orderBy('created_at', 'desc');
+                    ->with(['mahasiswa', 'dosenPembimbing1', 'dosenPembimbing2', 'periode'])
+                    ->orderBy('created_at', 'desc');
 
-        // 4. Terapkan Filter Pencarian (jika ada)
-        if ($searchQuery) {
-            $query->where(function ($q) use ($searchQuery) {
-                $q->where('judul', 'like', '%' . $searchQuery . '%')
-                  ->orWhereHas('mahasiswa', function ($mahasiswaQuery) use ($searchQuery) {
-                      $mahasiswaQuery->where('nama_lengkap', 'like', '%' . $searchQuery . '%')
-                                     ->orWhere('nrp', 'like', '%' . $searchQuery . '%');
-                  });
-            });
-        }
-        
-        // 5. Terapkan Filter Periode (jika ada)
+        // 3. Terapkan Filter Periode (Server Side)
+        // Kita biarkan ini tetap ada untuk membatasi beban data jika periode dipilih
         if ($selectedPeriodeId) {
             $query->where('periode_id', $selectedPeriodeId);
         }
         
-        // 6. Ambil data dengan pagination
-        $arsipTugasAkhir = $query->paginate(20)->withQueryString();
+        /**
+         * PERBAIKAN BUG:
+         * Kita gunakan get() bukan paginate() agar JQuery DataTables di View 
+         * bisa melihat semua data (termasuk status Menunggu Sidang).
+         */
+        $arsipTugasAkhir = $query->get(); 
 
-        // 7. Kirim semua data ke view
         return view('staff.arsip-index', [
             'arsipTugasAkhir' => $arsipTugasAkhir,
             'periodes' => $periodes,
-            'searchQuery' => $searchQuery,
             'selectedPeriodeId' => $selectedPeriodeId,
         ]);
     }
 
-    /**
-     * Menampilkan detail TA
-     */
     public function show(TugasAkhir $tugasAkhir)
     {
-        $tugasAkhir->load(
+        $tugasAkhir->load([
             'mahasiswa', 
             'dosenPembimbing1', 
             'dosenPembimbing2', 
-            'lstas', 
-            'sidangs.beritaAcara', // Load BA untuk di-download staf
+            'sidangs.beritaAcara', 
             'pengajuanSidangs.dokumen', 
-            'pengajuanSidangs.validator',
             'periode'
-        );
-
-        return view('staff.arsip-detail', [
-            'ta' => $tugasAkhir
         ]);
+
+        return view('staff.arsip-detail', ['ta' => $tugasAkhir]);
     }
 }

@@ -213,7 +213,8 @@
 
     {{-- ALERT VALIDASI (ERROR DARI LARAVEL VALIDATION) --}}
     @if ($errors->any())
-        <div style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5;">
+        <div
+            style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5;">
             <strong><i class="fa-solid fa-triangle-exclamation"></i> Terdapat Kesalahan:</strong>
             <ul style="margin-top: 5px; margin-left: 20px;">
                 @foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach
@@ -224,7 +225,8 @@
     {{-- ALERT ERROR SYSTEM (DARI CONTROLLER CATCH / LOGIC) --}}
     {{-- INI YANG SEBELUMNYA HILANG --}}
     @if (session('error'))
-        <div style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5;">
+        <div
+            style="background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5;">
             <strong><i class="fa-solid fa-circle-xmark"></i> Gagal:</strong>
             {{ session('error') }}
         </div>
@@ -232,7 +234,8 @@
 
     {{-- ALERT SUKSES --}}
     @if (session('success'))
-        <div style="background: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #86efac;">
+        <div
+            style="background: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #86efac;">
             <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
         </div>
     @endif
@@ -276,9 +279,16 @@
 
                 <div class="upload-grid">
                     <div class="file-input-wrapper">
-                        <label>1. Naskah TA (Folder .zip)</label>
-                        <span class="file-desc">Folder berisi seluruh file naskah, dikompres menjadi .zip/.rar (Max 50MB).</span>
-                        <input type="file" name="naskah_ta" class="form-input" accept=".zip,.rar" required>
+                        <label>1. Naskah TA</label>
+                        <span class="file-desc">Naskah TA lengkap. Foramt PDF.</span>
+                        <input type="file" name="naskah_ta" class="form-input" accept=".pdf" required>
+                    </div>
+
+                    <div class="file-input-wrapper">
+                        <label>Link Google Docs Naskah TA</label>
+                        <span class="file-desc">Pastikan akses dokumen diubah menjadi'Commenter' atau 'Editor'</span>
+                        <input type="url" name="link_naskah_ta" class="form-control"
+                            placeholder="https://docs.google.com/document/d/..." required>
                     </div>
 
                     <div class="file-input-wrapper">
@@ -329,7 +339,8 @@
 
                     <div class="file-input-wrapper" style="grid-column: 1 / -1;">
                         <label>9. Video Promosi (MP4)</label>
-                        <span class="file-desc">Durasi 1-3 menit. Memuat Logo Ubaya, NRP, Nama Mhs & Dosen. (Max 100MB).</span>
+                        <span class="file-desc">Durasi 1-3 menit. Memuat Logo Ubaya, NRP, Nama Mhs & Dosen. (Max
+                            100MB).</span>
                         <input type="file" name="video_promosi" class="form-input" accept=".mp4" required>
                     </div>
                 </div>

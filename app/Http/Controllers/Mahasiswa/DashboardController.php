@@ -25,7 +25,7 @@ class DashboardController extends Controller
             // --- AKHIR PERUBAHAN ---
             ->latest() // Ambil yang paling baru
             ->first(); // Ambil 1 saja
-        
+
 
         // 3. Kirim data ke view
         return view('mahasiswa.dashboard', [
@@ -34,21 +34,38 @@ class DashboardController extends Controller
         ]);
 
 
+    }
+
+    public function destoy(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->mahasiswa) {
+            $user->mahasiswa->delete();
         }
 
-       
+        $user->delete();
+        return redirect('/');
 
-        // public function eror(Request $request){
-        //     $user = Auth::user();
-        //     if ($user->Mahasiswa){
-        //         $user->mahasiswa->delete();
+    }
 
-        //     }
 
-        //     $user->delete();
+    public function store(Request $request){
+        Mahasiswa::create([
+            'nama_lengkap' => $request->nama_lengkap,
+            'nrp' => $request-> nrp
+        ]);
+    }
+    // public function eror(Request $request){
+    //     $user = Auth::user();
+    //     if ($user->Mahasiswa){
+    //         $user->mahasiswa->delete();
 
-        //     return redirect('/');
-        // }
+    //     }
+
+    //     $user->delete();
+
+    //     return redirect('/');
+    // }
 
 
 }

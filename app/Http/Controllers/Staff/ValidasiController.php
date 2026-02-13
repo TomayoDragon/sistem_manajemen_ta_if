@@ -65,14 +65,8 @@ class ValidasiController extends Controller
             
             $pengajuan->status_validasi = 'TERIMA'; 
             $pengajuan->catatan_validasi = $request->input('catatan_validasi');
-
-            // --- PERBAIKAN DISINI (SOLUSI ERROR FOREIGN KEY) ---
-            // Kita ambil Staff ID dari relasi User, bukan User ID langsung.
-            // Opsi 1: Jika User punya kolom staff_id (seperti kode lama Anda)
-            // $pengajuan->validator_id = Auth::user()->staff_id; 
             
-            // Opsi 2: Jika menggunakan Relasi Eloquent (Lebih aman/umum)
-             $pengajuan->validator_id = Auth::user()->staff->id; 
+            $pengajuan->validator_id = Auth::user()->staff->id; 
 
             $pengajuan->validated_at = now();
             $pengajuan->save();

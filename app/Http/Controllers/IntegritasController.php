@@ -61,7 +61,7 @@ class IntegritasController extends Controller
             // Sistem menyimpan BASE64 (agar aman dari error UTF-8), jadi harus di-DECODE ke binary
             $signatureToVerify = base64_decode($signatureDB);
         } else {
-            // Mahasiswa menyimpan BINARY (berdasarkan info Anda sebelumnya), jadi pakai langsung
+            // Mahasiswa menyimpan BINARY, jadi pakai langsung
             $signatureToVerify = $signatureDB;
         }
 

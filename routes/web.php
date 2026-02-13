@@ -29,6 +29,7 @@ use App\Http\Controllers\Staff\ArsipController;
 use App\Http\Controllers\Staff\PeriodeController;
 use App\Http\Controllers\Staff\JadwalExcelController;
 use App\Http\Controllers\Staff\JadwalMonitoringController;
+use App\Http\Controllers\Staff\TugasAkhirExcelController; // Pastikan ini di-use jika belum
 use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 
 
@@ -51,7 +52,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:mahasiswa'])->prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::put('/update-no-hp', [DashboardController::class, 'updateNoHP'])->name('updateNoHP');
-       // Route::delete('/error', [DashboardController::class, 'error'])->name('error');
+        // Route::delete('/error', [DashboardController::class, 'error'])->name('error');
         Route::get('/upload', [UploadController::class, 'create'])->name('upload');
         Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
         Route::get('/sidang', [SidangController::class, 'index'])->name('sidang');
@@ -63,17 +64,28 @@ Route::middleware(['auth'])->group(function () {
     // --- GRUP DOSEN ---
     Route::middleware(['role:dosen'])->prefix('dosen')->name('dosen.')->group(function () {
         Route::get('/dashboard', [DosenDashboardController::class, 'index'])->name('dashboard');
+        
+        // Penilaian Sidang / LSTA
         Route::get('/penilaian/{type}/{id}', [PenilaianController::class, 'show'])->name('penilaian.show');
         Route::post('/penilaian/{type}/{id}', [PenilaianController::class, 'store'])->name('penilaian.store');
+        
+        // Bimbingan & Validasi Maju Sidang
         Route::get('/bimbingan', [BimbinganController::class, 'index'])->name('bimbingan.index');
+        Route::get('/bimbingan/{id}', [BimbinganController::class, 'show'])->name('bimbingan.show');
+        
+        // [BARU DITAMBAHKAN] Rute untuk Approve Mahasiswa
         Route::post('/bimbingan/{tugasAkhir}/approve', [BimbinganController::class, 'approve'])->name('bimbingan.approve');
+
+        // [DIPERBARUI] View Dokumen (Inline/Preview + GDocs Redirect)
+        Route::get('/dokumen/{id}/view', [BimbinganController::class, 'viewDokumen'])->name('dokumen.view');
     });
 
     // --- GRUP STAFF ---
     Route::middleware(['role:staff'])->prefix('staff')->name('staff.')->group(function () {
-        Route::get('/ta/import', [App\Http\Controllers\Staff\TugasAkhirExcelController::class, 'index'])->name('import_ta');
-        Route::get('/ta/template', [App\Http\Controllers\Staff\TugasAkhirExcelController::class, 'downloadTemplate'])->name('ta.template');
-        Route::post('/ta/import', [App\Http\Controllers\Staff\TugasAkhirExcelController::class, 'import'])->name('ta.import.process');
+        Route::get('/ta/import', [TugasAkhirExcelController::class, 'index'])->name('import_ta');
+        Route::get('/ta/template', [TugasAkhirExcelController::class, 'downloadTemplate'])->name('ta.template');
+        Route::post('/ta/import', [TugasAkhirExcelController::class, 'import'])->name('ta.import.process');
+        
         // 1. Dashboard
         Route::get('/dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
 
@@ -116,6 +128,8 @@ Route::middleware(['auth'])->group(function () {
     // --- RUTE GLOBAL (UNTUK SEMUA ROLE) ---
     Route::get('/integritas/{dokumen}', [IntegritasController::class, 'show'])->name('integritas.show');
     Route::post('/integritas/{dokumen}', [IntegritasController::class, 'verify'])->name('integritas.verify');
+    
+    // Download Dokumen Umum
     Route::get('/dokumen/{dokumen}/download', [DokumenController::class, 'download'])->name('dokumen.download');
 
     // Download Hasil Sidang (Berita Acara)

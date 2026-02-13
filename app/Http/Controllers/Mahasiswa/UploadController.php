@@ -41,25 +41,22 @@ class UploadController extends Controller
         $mahasiswa = Auth::user()->mahasiswa;
 
         // =========================================================================
-        // 1. CEK KEY & AUTO-HEALING
+        // 1. CEK KEY & AUTO-HEALING (Tetap dipertahankan untuk Digital Signature)
         // =========================================================================
         $keyIsValid = false;
 
-        // Cek apakah key ada dan valid (bisa didecrypt)
         if (!empty($mahasiswa->private_key_encrypted)) {
             try {
                 Crypt::decryptString($mahasiswa->private_key_encrypted);
                 $keyIsValid = true;
             } catch (\Exception $e) {
-                $keyIsValid = false; // Key rusak/format lama
+                $keyIsValid = false; 
             }
         }
 
-        // Jika tidak valid, Generate Baru pakai Service
         if (!$keyIsValid) {
             try {
                 $signatureService->generateAndStoreKeys($mahasiswa);
-                // Refresh agar object $mahasiswa punya data key baru dari DB
                 $mahasiswa = $mahasiswa->fresh(); 
             } catch (\Exception $e) {
                 return redirect()->back()->with('error', 'Gagal generate key: ' . $e->getMessage());
@@ -67,18 +64,23 @@ class UploadController extends Controller
         }
 
         // =========================================================================
-        // 2. VALIDASI & UPLOAD
+        // 2. VALIDASI INPUT
         // =========================================================================
         $request->validate([
-            'naskah_ta'         => 'required|file|mimes:zip,rar|max:51200',
-            'proposal_ta'       => 'required|file|mimes:pdf|max:10240',
-            'artikel_jurnal'    => 'required|file|mimes:pdf|max:10240',
-            'kartu_studi'       => 'required|file|mimes:pdf|max:5120',
-            'surat_tugas'       => 'required|file|mimes:pdf|max:5120',
-            'bukti_bimbingan'   => 'required|file|mimes:pdf|max:10240',
-            'sertifikat_lsta'   => 'required|file|mimes:pdf|max:5120',
+            // REVISI DOSEN: File harus dokumen (doc/docx/pdf) agar bisa dibuka langsung, bukan ZIP.
+            // REVISI DOSEN: Tambahan validasi untuk Link Google Docs
+            'naskah_ta'       => 'required|file|mimes:doc,docx,pdf|max:51200', 
+            'link_naskah_ta'  => 'required|url', 
+
+            // Validasi file pendukung lainnya
+            'proposal_ta'     => 'required|file|mimes:pdf|max:10240',
+            'artikel_jurnal'  => 'required|file|mimes:pdf|max:10240',
+            'kartu_studi'     => 'required|file|mimes:pdf|max:5120',
+            'surat_tugas'     => 'required|file|mimes:pdf|max:5120',
+            'bukti_bimbingan' => 'required|file|mimes:pdf|max:10240',
+            'sertifikat_lsta' => 'required|file|mimes:pdf|max:5120',
             'bukti_persetujuan' => 'required|file|mimes:pdf|max:5120',
-            'video_promosi'     => 'required|file|mimes:mp4|max:102400',
+            'video_promosi'   => 'required|file|mimes:mp4|max:102400',
         ]);
 
         $tugasAkhir = $mahasiswa->tugasAkhirs()->latest()->first();
@@ -111,20 +113,33 @@ class UploadController extends Controller
                 
                 $file = $request->file($inputName);
                 
-                // 1. Hashing
+                // =============================================================
+                // PROSES CORE SKRIPSI (HASHING & SIGNING)
+                // Tetap menggunakan file fisik sebagai acuan integritas data
+                // =============================================================
+                
+                // 1. Hashing (Custom Hash SHA512 + BLAKE2b)
                 $hashData = $signatureService->performCustomHash($file->get()); 
 
-                // 2. Signing
-                // Kita kirim $mahasiswa yang sudah di-refresh (dijamin punya key)
+                // 2. Signing (EdDSA)
                 $signature = $signatureService->performRealEdDSASigning(
                     $hashData['combined_raw_for_signing'], 
                     $mahasiswa 
                 );
 
-                // 3. Simpan File & DB
+                // 3. Simpan File Fisik
                 $extension = $file->getClientOriginalExtension();
                 $customName = $mahasiswa->nrp . '_' . $this->getFileNameByType($dbType) . '.' . $extension;
                 $path = $file->storeAs('uploads/dokumen_pengajuan', $customName);
+
+                // =============================================================
+                // LOGIKA KHUSUS REVISI DOSEN (LINK GOOGLE DOCS)
+                // =============================================================
+                $externalLink = null;
+                // Cek jika ini adalah Naskah TA, ambil link dari input form
+                if ($dbType === 'NASKAH_TA') {
+                    $externalLink = $request->input('link_naskah_ta');
+                }
 
                 DokumenPengajuan::create([
                     'pengajuan_sidang_id' => $pengajuan->id,
@@ -136,11 +151,13 @@ class UploadController extends Controller
                     'hash_combined' => $hashData['combined_hex'],
                     'signature_data' => $signature,
                     'is_signed' => true,
+                    // Simpan link jika ada (hanya untuk NASKAH_TA)
+                    'external_link' => $externalLink, 
                 ]);
             }
 
             DB::commit();
-            return redirect()->route('mahasiswa.upload')->with('success', 'Berhasil upload dan tanda tangan.');
+            return redirect()->route('mahasiswa.upload')->with('success', 'Berhasil upload, tanda tangan digital, dan menyimpan link dokumen.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -163,3 +180,4 @@ class UploadController extends Controller
         };
     }
 }
+
